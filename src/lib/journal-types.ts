@@ -57,14 +57,14 @@ export function dateKey(date: Date) {
 
 export function shiftKey(key: string, days: number) {
   const [y, m, d] = key.split("-").map(Number);
-  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+  const date = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
   date.setDate(date.getDate() + days);
   return dateKey(date);
 }
 
 export function prettyDate(key: string) {
   const [y, m, d] = key.split("-").map(Number);
-  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+  const date = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
   return date.toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
