@@ -1,6 +1,5 @@
-import { HOURS } from "@/lib/journal-types";
-import type { CategoryId, DayEntry } from "@/lib/journal-types";
 import { HourRow } from "./HourRow";
+import { HOURS, type CategoryId, type DayEntry } from "@/lib/journal-types";
 
 type Props = {
   day: DayEntry;
@@ -11,12 +10,15 @@ type Props = {
 
 export function HourGrid({ day, currentHour, onNote, onCategory }: Props) {
   return (
-    <section className="neu-raised rounded-3xl p-4 sm:p-6" aria-label="Hourly schedule matrix">
+    <section
+      className="rounded-3xl bg-[#e0e5ec] p-4 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-6"
+      aria-label="Hourly schedule matrix"
+    >
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-foreground">Hourly Schedule</h2>
         <p className="text-xs text-muted-foreground">00:00 — 23:00</p>
       </div>
-      <div className="max-h-[70vh] space-y-2.5 overflow-y-auto pr-1">
+      <div className="max-h-[70vh] space-y-3 overflow-y-auto p-1">
         {HOURS.map((hour) => (
           <HourRow
             key={hour}

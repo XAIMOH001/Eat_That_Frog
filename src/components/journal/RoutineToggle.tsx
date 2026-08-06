@@ -20,20 +20,16 @@ export function RoutineToggle({ checked, onChange }: Props) {
         aria-checked={checked}
         aria-label="Core Routine Maintained"
         onClick={() => onChange(!checked)}
-        className="neu-inset neu-focus flex h-10 w-[4.5rem] shrink-0 items-center rounded-full px-1.5"
+        className="flex h-10 w-[4.5rem] shrink-0 items-center rounded-full bg-[#e0e5ec] px-1.5 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-[#6c5ce7]/45 focus-visible:outline-none"
       >
         <span
-          className="grid size-7 place-items-center rounded-full"
-          style={{
-            transform: checked ? "translateX(1.75rem)" : "translateX(0)",
-            transition: "transform 200ms ease, box-shadow 200ms ease",
-            background: checked ? "var(--success)" : "var(--background)",
-            boxShadow: checked
-              ? "0 3px 8px rgba(0,184,148,0.45)"
-              : "-3px -3px 6px var(--neu-light), 4px 4px 8px var(--neu-dark)",
-          }}
+          className={`grid size-7 place-items-center rounded-full transition-transform duration-200 ease-out ${
+            checked
+              ? "translate-x-7 bg-success shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
+              : "translate-x-0 bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
+          }`}
         >
-          {checked ? <Check className="size-4 text-success-foreground" strokeWidth={3} /> : null}
+          {checked ? <Check className="size-4 text-white" strokeWidth={3} /> : null}
         </span>
       </button>
     </div>

@@ -1,7 +1,7 @@
 import { Flame, Hourglass, Target, TrendingDown, Trophy } from "lucide-react";
-import type { DayMetrics } from "@/lib/journal-metrics";
 import { CategoryDonut } from "./CategoryDonut";
 import { StatCard } from "./StatCard";
+import type { DayMetrics } from "@/lib/journal-metrics";
 
 type Props = {
   metrics: DayMetrics;
@@ -40,13 +40,16 @@ export function AnalyticsPanel({ metrics, streak, best }: Props) {
           icon={Trophy}
           label="Best Streak"
           value={`${best} ${best === 1 ? "day" : "days"}`}
-          hint="All-time record"
+          hint="Session record"
         />
       </div>
 
-      <section className="neu-raised rounded-3xl p-6" aria-label="Time distribution by category">
+      <section
+        className="rounded-3xl bg-[#e0e5ec] p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+        aria-label="Time distribution by category"
+      >
         <div className="mb-6 flex items-center gap-3">
-          <span className="neu-inset-sm grid size-9 place-items-center rounded-full">
+          <span className="grid size-9 place-items-center rounded-full bg-[#e0e5ec] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
             <Hourglass className="size-4 text-primary" />
           </span>
           <h2 className="text-lg font-semibold tracking-tight text-foreground">

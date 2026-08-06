@@ -1,5 +1,5 @@
-import { CATEGORIES } from "@/lib/journal-types";
 import type { DayMetrics } from "@/lib/journal-metrics";
+import { CATEGORIES } from "@/lib/journal-types";
 
 type Props = { metrics: DayMetrics };
 
@@ -10,17 +10,10 @@ export function CategoryDonut({ metrics }: Props) {
   let cursor = 0;
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-around">
-      <div className="neu-inset relative grid size-52 shrink-0 place-items-center rounded-full">
-        <svg viewBox="0 0 160 160" className="absolute size-52 -rotate-90">
-          <circle
-            cx="80"
-            cy="80"
-            r={radius}
-            fill="none"
-            stroke="rgba(163,177,198,0.28)"
-            strokeWidth="18"
-          />
+    <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-around">
+      <div className="relative grid size-52 shrink-0 place-items-center rounded-full bg-[#e0e5ec] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
+        <svg viewBox="0 0 160 160" className="absolute size-52 -rotate-90" aria-hidden>
+          <circle cx="80" cy="80" r={radius} fill="none" stroke="#cdd5e0" strokeWidth="18" />
           {total > 0 &&
             CATEGORIES.map((c) => {
               const value = metrics.counts[c.id];
@@ -50,7 +43,7 @@ export function CategoryDonut({ metrics }: Props) {
           <span className="block text-3xl font-semibold tracking-tight text-foreground">
             {total}
           </span>
-          <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             hours logged
           </span>
         </div>
@@ -63,7 +56,7 @@ export function CategoryDonut({ metrics }: Props) {
           return (
             <li
               key={c.id}
-              className="neu-raised-sm flex items-center gap-3 rounded-xl px-3.5 py-2.5"
+              className="flex items-center gap-3 rounded-2xl bg-[#e0e5ec] px-3.5 py-2.5 shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
             >
               <span
                 className="size-2.5 shrink-0 rounded-full"
@@ -71,7 +64,7 @@ export function CategoryDonut({ metrics }: Props) {
                 aria-hidden
               />
               <span className="flex-1 text-sm font-medium text-foreground">{c.label}</span>
-              <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="text-sm tabular-nums text-muted-foreground">
                 {value}h · {pct}%
               </span>
             </li>

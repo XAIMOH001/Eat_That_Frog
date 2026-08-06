@@ -1,7 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { dateKey, prettyDate } from "@/lib/journal-types";
 import { DisciplineGauge } from "./DisciplineGauge";
 import { RoutineToggle } from "./RoutineToggle";
+import { dateKey, prettyDate } from "@/lib/journal-types";
 
 type Props = {
   selected: string;
@@ -12,21 +12,17 @@ type Props = {
   onRoutine: (value: boolean) => void;
 };
 
-export function HeaderBar({
-  selected,
-  onSelect,
-  onShift,
-  score,
-  routine,
-  onRoutine,
-}: Props) {
+const navButton =
+  "grid size-10 place-items-center rounded-full bg-[#e0e5ec] text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-[#6c5ce7]/45 focus-visible:outline-none";
+
+export function HeaderBar({ selected, onSelect, onShift, score, routine, onRoutine }: Props) {
   const isToday = selected === dateKey(new Date());
 
   return (
-    <header className="neu-raised-lg rounded-3xl p-5 sm:p-7">
+    <header className="rounded-3xl bg-[#e0e5ec] p-5 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-7">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-primary">
+          <p className="text-[0.65rem] font-semibold tracking-[0.22em] text-primary uppercase">
             Personal Focus &amp; Time Audit
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
@@ -38,33 +34,36 @@ export function HeaderBar({
               type="button"
               aria-label="Previous day"
               onClick={() => onShift(-1)}
-              className="neu-raised-sm neu-press neu-focus grid size-10 place-items-center rounded-full text-muted-foreground"
+              className={navButton}
             >
               <ChevronLeft className="size-4" />
             </button>
-            <label className="neu-inset neu-focus flex items-center gap-2 rounded-full px-4 py-2">
+
+            <label className="flex items-center gap-2 rounded-full bg-[#e0e5ec] px-4 py-2 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
               <Calendar className="size-4 text-muted-foreground" />
               <input
                 type="date"
                 value={selected}
                 onChange={(e) => e.target.value && onSelect(e.target.value)}
                 aria-label="Select date"
-                className="bg-transparent font-mono text-sm tabular-nums text-foreground outline-none"
+                className="bg-transparent text-sm tabular-nums text-foreground outline-none"
               />
             </label>
+
             <button
               type="button"
               aria-label="Next day"
               onClick={() => onShift(1)}
-              className="neu-raised-sm neu-press neu-focus grid size-10 place-items-center rounded-full text-muted-foreground"
+              className={navButton}
             >
               <ChevronRight className="size-4" />
             </button>
+
             {!isToday && (
               <button
                 type="button"
                 onClick={() => onSelect(dateKey(new Date()))}
-                className="neu-raised-sm neu-press neu-focus rounded-full px-4 py-2 text-xs font-semibold text-primary"
+                className="rounded-full bg-[#e0e5ec] px-4 py-2 text-xs font-semibold text-primary shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-[#6c5ce7]/45 focus-visible:outline-none"
               >
                 Today
               </button>

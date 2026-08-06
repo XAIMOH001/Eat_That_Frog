@@ -54,13 +54,14 @@ The application is disguised as a professional "Personal Focus & Time-Audit Jour
 
    - Soft neumorphic donut chart showing time distribution by category.
 
-4. Data Privacy & Local Storage:
+4. State:
 
-   - Ensure all inputs save automatically to browser localStorage so data remains 100% offline and private.
+   - All entries live in React component state for the duration of the session. There is no
+     localStorage or other persistence layer — a backend will be integrated later, and reloading
+     the page clears the journal.
 
-   - Include a "Export JSON Backup" button styled as a soft raised tactile button.
-
-Build this using React, Next.js App Router, Tailwind CSS (with custom utility classes for neumorphic inset/drop shadows), and Lucide React icons.
+Build this using React, Next.js App Router, Tailwind CSS (neumorphic inset/drop shadows applied as
+literal arbitrary-value utilities), and Lucide React icons.
 Tips
 Shadow Customization: If Lovable generates shadows that look too flat, ask it to: "Enhance the Tailwind box-shadow values to make the soft dual-light neumorphic extrusion more pronounced."
 

@@ -1,37 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { emptyJournal, loadJournal, saveJournal } from "@/lib/journal-storage";
+import { useCallback, useMemo, useState } from "react";
 import {
   dateKey,
   emptyDay,
   shiftKey,
   type CategoryId,
+  type DayEntry,
   type JournalData,
 } from "@/lib/journal-types";
 
 export function useJournal() {
-  const [data, setData] = useState<JournalData>(() => emptyJournal());
-  const [selected, setSelected] = useState<string>(() => dateKey(new Date()));
-  const [hydrated, setHydrated] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setData(loadJournal());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => saveJournal(data), 250);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [data, hydrated]);
+  const [data, setData] = useState<JournalData>({ version: 1, days: {} });
+  const [selected, setSelected] = useState(() => dateKey(new Date()));
 
   const day = useMemo(() => data.days[selected] ?? emptyDay(), [data, selected]);
 
   const mutateDay = useCallback(
-    (fn: (draft: ReturnType<typeof emptyDay>) => ReturnType<typeof emptyDay>) => {
+    (fn: (draft: DayEntry) => DayEntry) => {
       setData((prev) => {
         const current = prev.days[selected] ?? emptyDay();
         return {
@@ -70,13 +54,12 @@ export function useJournal() {
 
   const clearDay = useCallback(() => mutateDay(() => emptyDay()), [mutateDay]);
 
-  const goDay = useCallback((delta: number) => setSelected((k) => shiftKey(k, delta)), []);
+  const goDay = useCallback((delta: number) => setSelected((key) => shiftKey(key, delta)), []);
 
   return {
     data,
     day,
     selected,
-    hydrated,
     setSelected,
     goDay,
     setNote,

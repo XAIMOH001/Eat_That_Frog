@@ -22,7 +22,13 @@ export const CATEGORIES: {
   colorVar: string;
   productive: boolean;
 }[] = [
-  { id: "focus", label: "Focus Time", short: "Focus", colorVar: "var(--cat-focus)", productive: true },
+  {
+    id: "focus",
+    label: "Focus Time",
+    short: "Focus",
+    colorVar: "var(--cat-focus)",
+    productive: true,
+  },
   { id: "admin", label: "Admin", short: "Admin", colorVar: "var(--cat-admin)", productive: true },
   { id: "rest", label: "Rest", short: "Rest", colorVar: "var(--cat-rest)", productive: false },
   {
