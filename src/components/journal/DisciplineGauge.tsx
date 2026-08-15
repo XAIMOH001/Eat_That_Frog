@@ -1,10 +1,13 @@
 type Props = { score: number };
 
+// Score is 40% frog + 30% plan adherence + 30% focus quality. The frog alone is worth 40, so
+// the bands sit either side of it: below 40 the frog is necessarily uneaten, and 70+ needs the
+// frog plus hours that were both planned and focused.
 export function verdict(score: number) {
   if (score >= 90) return "Exceptional day";
-  if (score >= 80) return "Routine held, frog eaten";
-  if (score >= 40) return "One commitment held";
-  if (score >= 10) return "Both commitments missed";
+  if (score >= 70) return "Frog eaten, hours on plan";
+  if (score >= 40) return "Frog eaten";
+  if (score >= 15) return "Hours logged, frog uneaten";
   return "Day not started";
 }
 

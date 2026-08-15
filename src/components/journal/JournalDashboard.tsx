@@ -9,7 +9,8 @@ import { FrogCard } from "./FrogCard";
 import { HeaderBar } from "./HeaderBar";
 import { HourGrid } from "./HourGrid";
 import { useJournal } from "@/hooks/use-journal";
-import { bestStreak, dayMetrics, routineStreak } from "@/lib/journal-metrics";
+import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
+import { routineStreak } from "@/lib/routine-lock";
 import { dateKey } from "@/lib/journal-types";
 
 const TABS = [
@@ -20,7 +21,10 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export function JournalDashboard() {
-  const journal = useJournal();
+  // Single clock read per render, threaded into everything that needs "now" so no module
+  // reaches for the ambient clock on its own.
+  const now = new Date();
+  const journal = useJournal(now);
   const [tab, setTab] = useState<TabId>("journal");
   const [, tick] = useState(0);
 
@@ -46,13 +50,32 @@ export function JournalDashboard() {
     document.getElementById(`tab-${target.id}`)?.focus();
   };
 
-  const now = new Date();
   const todayKey = dateKey(now);
   const currentHour = journal.selected === todayKey ? now.getHours() : null;
 
-  const metrics = useMemo(() => dayMetrics(journal.day), [journal.day]);
-  const streak = useMemo(() => routineStreak(journal.data, todayKey), [journal.data, todayKey]);
+  const metrics = useMemo(
+    () => dayMetrics(journal.data, journal.selected, journal.day),
+    [journal.data, journal.selected, journal.day],
+  );
+  // todayKey rather than `now` as the dep: routineStreak only reads the calendar day out of the
+  // clock, so a fresh Date on every render must not invalidate the memo.
+  const streak = useMemo(
+    () => routineStreak(journal.data, now),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [journal.data, todayKey],
+  );
   const best = useMemo(() => bestStreak(journal.data), [journal.data]);
+
+  // The frog card edits the A1 task by title, creating it on first keystroke. Kept here rather
+  // than in the hook so the card stays a dumb text/checkbox control until the full queue lands.
+  const { frog, addTask, updateTask, selected } = journal;
+  const setFrogTitle = (title: string) => {
+    if (frog) updateTask(frog.id, { title });
+    else addTask(title, "A1", selected);
+  };
+  const setFrogCompleted = (completed: boolean) => {
+    if (frog) updateTask(frog.id, { completed });
+  };
 
   return (
     <main className="min-h-screen bg-surface px-4 py-6 sm:px-6 sm:py-10">
@@ -63,14 +86,11 @@ export function JournalDashboard() {
           onShift={journal.goDay}
           score={metrics.disciplineScore}
           routine={journal.day.coreRoutineMaintained}
+          routineState={journal.lockState}
           onRoutine={journal.setRoutine}
         />
 
-        <FrogCard
-          frog={journal.day.frog}
-          onText={journal.setFrogText}
-          onCompleted={journal.setFrogCompleted}
-        />
+        <FrogCard frog={journal.frog} onText={setFrogTitle} onCompleted={setFrogCompleted} />
 
         <p aria-live="polite" className="sr-only">
           {`Discipline score ${metrics.disciplineScore} out of 100. ${verdict(

@@ -1,6 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { DisciplineGauge } from "./DisciplineGauge";
 import { RoutineToggle } from "./RoutineToggle";
+import type { RoutineState } from "@/lib/routine-lock";
 import { dateKey, prettyDate } from "@/lib/journal-types";
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
   onShift: (delta: number) => void;
   score: number;
   routine: boolean;
+  routineState: RoutineState;
   onRoutine: (value: boolean) => void;
 };
 
@@ -19,7 +21,15 @@ const MAX_DATE = "2100-12-31";
 const navButton =
   "grid size-10 place-items-center rounded-full bg-surface text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
 
-export function HeaderBar({ selected, onSelect, onShift, score, routine, onRoutine }: Props) {
+export function HeaderBar({
+  selected,
+  onSelect,
+  onShift,
+  score,
+  routine,
+  routineState,
+  onRoutine,
+}: Props) {
   const isToday = selected === dateKey(new Date());
 
   return (
@@ -82,7 +92,7 @@ export function HeaderBar({ selected, onSelect, onShift, score, routine, onRouti
 
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
           <DisciplineGauge score={score} />
-          <RoutineToggle checked={routine} onChange={onRoutine} />
+          <RoutineToggle checked={routine} state={routineState} onChange={onRoutine} />
         </div>
       </div>
     </header>

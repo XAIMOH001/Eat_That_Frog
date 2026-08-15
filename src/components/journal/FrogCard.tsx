@@ -1,16 +1,19 @@
 import { Check, Target } from "lucide-react";
-import type { Frog } from "@/lib/journal-types";
+import type { PlannedTask } from "@/lib/journal-types";
 
 type Props = {
-  frog: Frog;
+  /** The A1 task for the selected day, if one has been named yet. */
+  frog: PlannedTask | undefined;
   onText: (value: string) => void;
   onCompleted: (value: boolean) => void;
 };
 
 export function FrogCard({ frog, onText, onCompleted }: Props) {
-  const named = frog.text.trim().length > 0;
+  const title = frog?.title ?? "";
+  const completed = frog?.completed ?? false;
+  const named = title.trim().length > 0;
   // An unnamed frog can't be eaten, but an eaten one stays undoable even if the text is cleared.
-  const locked = !named && !frog.completed;
+  const locked = !named && !completed;
 
   return (
     <section
@@ -33,33 +36,33 @@ export function FrogCard({ frog, onText, onCompleted }: Props) {
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
-          value={frog.text}
+          value={title}
           onChange={(e) => onText(e.target.value)}
           placeholder="What is your frog today?"
           aria-label="Today's frog"
           className={`min-w-0 flex-1 rounded-2xl bg-surface px-4 py-3 text-sm shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-accent ${
-            frog.completed ? "text-muted-foreground line-through" : "text-foreground"
+            completed ? "text-muted-foreground line-through" : "text-foreground"
           }`}
         />
 
         <button
           type="button"
-          aria-pressed={frog.completed}
+          aria-pressed={completed}
           aria-disabled={locked}
           aria-describedby={locked ? "frog-hint" : undefined}
           onClick={() => {
-            if (!locked) onCompleted(!frog.completed);
+            if (!locked) onCompleted(!completed);
           }}
           className={`flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-surface px-5 py-3 text-sm font-semibold transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
-            frog.completed
+            completed
               ? "text-success shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
               : locked
                 ? "text-muted-foreground shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
                 : "text-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
           }`}
         >
-          {frog.completed ? <Check className="size-4" strokeWidth={3} aria-hidden="true" /> : null}
-          {frog.completed ? "Frog Eaten" : "Ate The Frog!"}
+          {completed ? <Check className="size-4" strokeWidth={3} aria-hidden="true" /> : null}
+          {completed ? "Frog Eaten" : "Ate The Frog!"}
         </button>
       </div>
 

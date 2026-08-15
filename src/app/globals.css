@@ -11,7 +11,7 @@
   --color-foreground: #3f4a5f;
   --color-muted-foreground: #5a6579;
   --color-primary: #6052ce;
-  --color-success: #00725c;
+  --color-success: #006b57;
   --color-danger: #9b4d3b;
   --color-accent: #6c5ce7;
 
@@ -26,7 +26,7 @@
 
   --cat-focus: #6052ce;
   --cat-admin: #366799;
-  --cat-rest: #00725c;
+  --cat-rest: #006b57;
   --cat-wasted: #9b4d3b;
 }
 
