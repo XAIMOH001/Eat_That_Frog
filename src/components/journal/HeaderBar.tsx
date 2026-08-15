@@ -9,6 +9,7 @@ type Props = {
   onSelect: (key: string) => void;
   onShift: (delta: number) => void;
   score: number;
+  frogEaten: boolean;
   routine: boolean;
   routineState: RoutineState;
   onRoutine: (value: boolean) => void;
@@ -26,6 +27,7 @@ export function HeaderBar({
   onSelect,
   onShift,
   score,
+  frogEaten,
   routine,
   routineState,
   onRoutine,
@@ -91,7 +93,7 @@ export function HeaderBar({
         </div>
 
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-          <DisciplineGauge score={score} />
+          <DisciplineGauge score={score} frogEaten={frogEaten} />
           <RoutineToggle checked={routine} state={routineState} onChange={onRoutine} />
         </div>
       </div>

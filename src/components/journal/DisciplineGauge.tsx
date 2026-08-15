@@ -1,17 +1,24 @@
-type Props = { score: number };
+type Props = { score: number; frogEaten: boolean };
 
-// Score is 40% frog + 30% plan adherence + 30% focus quality. The frog alone is worth 40, so
-// the bands sit either side of it: below 40 the frog is necessarily uneaten, and 70+ needs the
-// frog plus hours that were both planned and focused.
-export function verdict(score: number) {
+/**
+ * The frog is a fact, not something to infer from the total. A day with no frog but a full
+ * eight planned hours reaches 60, which the old score-only bands reported as "Frog eaten" —
+ * the verdict was stating the opposite of what happened. Taking the flag makes the two
+ * ladders independent: 40 of the 100 points are the frog, the other 60 are the hours.
+ */
+export function verdict(score: number, frogEaten: boolean) {
+  if (!frogEaten) {
+    if (score >= 40) return "Strong hours, frog uneaten";
+    if (score >= 15) return "Hours logged, frog uneaten";
+    return "Day not started";
+  }
   if (score >= 90) return "Exceptional day";
   if (score >= 70) return "Frog eaten, hours on plan";
-  if (score >= 40) return "Frog eaten";
-  if (score >= 15) return "Hours logged, frog uneaten";
-  return "Day not started";
+  if (score >= 55) return "Frog eaten, hours light";
+  return "Frog eaten, little logged";
 }
 
-export function DisciplineGauge({ score }: Props) {
+export function DisciplineGauge({ score, frogEaten }: Props) {
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - score / 100);
@@ -40,7 +47,7 @@ export function DisciplineGauge({ score }: Props) {
           aria-valuenow={score}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuetext={`${score} out of 100 — ${verdict(score)}`}
+          aria-valuetext={`${score} out of 100 — ${verdict(score, frogEaten)}`}
           aria-label="Daily discipline score"
         >
           <span className="text-2xl font-semibold tracking-tight text-foreground">{score}</span>
@@ -51,7 +58,7 @@ export function DisciplineGauge({ score }: Props) {
         <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
           Daily Discipline
         </p>
-        <p className="mt-1 text-sm font-medium text-foreground">{verdict(score)}</p>
+        <p className="mt-1 text-sm font-medium text-foreground">{verdict(score, frogEaten)}</p>
       </div>
     </div>
   );

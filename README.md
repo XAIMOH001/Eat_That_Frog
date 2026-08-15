@@ -58,12 +58,28 @@ State is in-memory for the duration of the session. Reloading clears everything.
 ## Daily Discipline Score
 
 ```
-score = S_Frog · 0.40  +  S_Plan · 0.30  +  S_Focus · 0.30
+score = 40 · S_Frog  +  60 · volume · (S_Plan + S_Focus) / 2
 
-S_Frog   100 if the A1 task is completed, else 0
-S_Plan   productive hours tagged to a planned task / productive hours · 100
-S_Focus  (focus + 0.6 · admin) / (focus + admin + wasted) · 100
+S_Frog   1 if the A1 task is completed, else 0
+volume   min(productive hours / 8, 1)
+S_Plan   productive hours tagged to a planned task / productive hours
+S_Focus  (focus + 0.6 · admin) / (focus + admin + wasted)
 ```
+
+The frog is worth 40 outright. The other 60 are **earned against the hours actually
+worked** — volume multiplies the quality terms rather than sitting beside them as a fourth
+weighted term. S_Plan and S_Focus are ratios, and a ratio over a single hour is not evidence
+of a disciplined day: weighting volume additively still paid one tagged focus hour 83/100,
+where multiplying scores it 48.
+
+| Day                            | Score |
+| ------------------------------ | ----- |
+| Frog only, nothing logged      | 40    |
+| Frog + 1 tagged focus hour     | 48    |
+| Frog + 4 tagged focus hours    | 70    |
+| Frog + 8 tagged focus hours    | 100   |
+| Frog + 4 focus, 4 wasted       | 63    |
+| No frog + 8 tagged focus hours | 60    |
 
 **Rest appears in no denominator.** This is the single most important property of the
 formula, not an accident of it. Penalising a logged rest hour creates a direct incentive to
@@ -78,15 +94,13 @@ Other decisions worth knowing before you touch this:
   means nothing was planned.
 - **Core Routine does not score.** It drives the streak and the lockout only, so a day with
   the routine held but the frog uneaten tops out at 60.
-- **There is no volume term, by design of the formula.** `S_Plan` and `S_Focus` are both
-  pure ratios, so one tagged focus hour scores exactly the same as eight: frog eaten plus a
-  single planned hour reaches 100/100. The score measures the _quality_ of the time you
-  logged, not how much of it there was. If putting the hours in should count, that needs a
-  fourth term — it is not something the current weights can express.
+- **Volume counts productive hours only**, so a squandered day cannot inflate it and Rest
+  stays outside every term. It saturates at 8 — a tenth hour adds nothing.
 
-The gauge's verdict bands sit either side of 40, because the frog alone is worth exactly
-that: below 40 the frog is necessarily uneaten, and 70+ needs the frog plus hours that were
-both planned and focused.
+`verdict()` takes the frog flag rather than inferring it from the total. A day with no frog
+but eight fully planned hours reaches 60, which score-only bands reported as "Frog eaten" —
+stating the opposite of what happened. The two ladders are independent: 40 points are the
+frog, 60 are the hours, and the wording never claims one from the other.
 
 ---
 

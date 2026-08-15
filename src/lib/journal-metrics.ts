@@ -21,15 +21,24 @@ export type DayMetrics = {
   sFrog: number;
   sPlan: number;
   sFocus: number;
+  /** 0–100. How much of a full working day was actually put in. */
+  sVolume: number;
   disciplineScore: number;
 };
 
-const W_FROG = 0.4;
-const W_PLAN = 0.3;
-const W_FOCUS = 0.3;
+/** The frog is worth this outright; the rest is earned against the hours actually worked. */
+const FROG_POINTS = 40;
+const QUALITY_POINTS = 100 - FROG_POINTS;
+
+/** Plan adherence and focus quality split the quality points evenly. */
+const PLAN_SHARE = 0.5;
+const FOCUS_SHARE = 0.5;
 
 /** Admin is necessary maintenance — roughly 60% of the leverage of deep frog work. */
 const ADMIN_WEIGHT = 0.6;
+
+/** Productive hours that count as a full day. Volume saturates here. */
+const FULL_DAY_HOURS = 8;
 
 export function dayMetrics(data: JournalData, key: string, day: DayEntry | undefined): DayMetrics {
   const entry = day ?? emptyDay();
@@ -61,7 +70,18 @@ export function dayMetrics(data: JournalData, key: string, day: DayEntry | undef
   const working = counts.focus + counts.admin + counts.wasted;
   const sFocus = working > 0 ? ((counts.focus + counts.admin * ADMIN_WEIGHT) / working) * 100 : 0;
 
-  const raw = sFrog * W_FROG + sPlan * W_PLAN + sFocus * W_FOCUS;
+  // S_Volume — how much of a full working day was put in. Measured on productive hours only:
+  // counting Wasted here would let a squandered day inflate the score, and Rest stays outside
+  // every term so logging it can never cost anything.
+  const volume = Math.min(productive / FULL_DAY_HOURS, 1);
+
+  // Volume multiplies the quality points rather than adding a fourth weighted term. S_Plan and
+  // S_Focus are ratios, and a ratio over one hour is not evidence of a disciplined day: additive
+  // weighting still paid a single tagged focus hour 83/100. Multiplying makes the quality points
+  // something you earn in proportion to the hours actually worked — the same day scores 48.
+  const raw =
+    sFrog * (FROG_POINTS / 100) +
+    QUALITY_POINTS * volume * ((sPlan / 100) * PLAN_SHARE + (sFocus / 100) * FOCUS_SHARE);
 
   return {
     counts,
@@ -74,6 +94,7 @@ export function dayMetrics(data: JournalData, key: string, day: DayEntry | undef
     sFrog,
     sPlan: Math.round(sPlan),
     sFocus: Math.round(sFocus),
+    sVolume: Math.round(volume * 100),
     disciplineScore: Math.max(0, Math.min(100, Math.round(raw))),
   };
 }

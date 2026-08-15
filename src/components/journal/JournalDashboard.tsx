@@ -91,6 +91,7 @@ export function JournalDashboard() {
           onSelect={journal.setSelected}
           onShift={journal.goDay}
           score={metrics.disciplineScore}
+          frogEaten={metrics.sFrog === 100}
           routine={journal.day.coreRoutineMaintained}
           routineState={journal.lockState}
           onRoutine={journal.setRoutine}
@@ -101,6 +102,7 @@ export function JournalDashboard() {
         <p aria-live="polite" className="sr-only">
           {`Discipline score ${metrics.disciplineScore} out of 100. ${verdict(
             metrics.disciplineScore,
+            metrics.sFrog === 100,
           )}. Streak ${streak} ${streak === 1 ? "day" : "days"}.`}
         </p>
 
