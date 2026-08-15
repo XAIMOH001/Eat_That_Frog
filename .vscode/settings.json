@@ -1,0 +1,14 @@
+{
+  // Tailwind v4 uses at-rules the built-in CSS validator does not know — `@theme`, `@source`,
+  // and `@import "tailwindcss" source(none)`. Left on, it reports phantom syntax errors on
+  // globals.css line 1. Tailwind CSS IntelliSense validates these correctly instead.
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

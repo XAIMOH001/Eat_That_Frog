@@ -1,16 +1,56 @@
+import { useState } from "react";
 import { Flame, Hourglass, Target, TrendingDown, Trophy } from "lucide-react";
-import type { DayMetrics } from "@/lib/journal-metrics";
 import { CategoryDonut } from "./CategoryDonut";
+import { FrogRateCard } from "./FrogRateCard";
+import { HabitHeatmap } from "./HabitHeatmap";
 import { StatCard } from "./StatCard";
+import { WeeklyBars } from "./WeeklyBars";
+import {
+  dailySeries,
+  frogRate,
+  monthGrid,
+  rangeCounts,
+  type DayMetrics,
+  type HeatCell,
+} from "@/lib/journal-metrics";
+import { shiftKey, type JournalData } from "@/lib/journal-types";
 
 type Props = {
+  data: JournalData;
   metrics: DayMetrics;
+  selected: string;
+  todayKey: string;
   streak: number;
   best: number;
 };
 
-export function AnalyticsPanel({ metrics, streak, best }: Props) {
+const RANGES = [
+  { id: "1", label: "Today", days: 1 },
+  { id: "7", label: "7 days", days: 7 },
+  { id: "30", label: "30 days", days: 30 },
+] as const;
+
+type RangeId = (typeof RANGES)[number]["id"];
+
+export function AnalyticsPanel({ data, metrics, selected, todayKey, streak, best }: Props) {
+  const [range, setRange] = useState<RangeId>("1");
+  const active = RANGES.find((r) => r.id === range) ?? RANGES[0];
+
   const ratio = metrics.wasted > 0 ? (metrics.productive / metrics.wasted).toFixed(1) : "—";
+  const counts = rangeCounts(data, selected, active.days);
+  const series = dailySeries(data, todayKey, 7);
+  const thisWeek = frogRate(data, todayKey, 7);
+  const lastWeek = frogRate(data, shiftKey(todayKey, -7), 7);
+
+  const cells = monthGrid(data, selected, todayKey);
+  const real = cells.filter((c): c is HeatCell => c !== null);
+  const elapsed = real.filter((c) => !c.future).length;
+  const heldCount = real.filter((c) => c.held).length;
+  const [y, m] = selected.split("-").map(Number);
+  const monthLabel = new Date(y ?? 1970, (m ?? 1) - 1, 1).toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="space-y-5">
@@ -40,21 +80,59 @@ export function AnalyticsPanel({ metrics, streak, best }: Props) {
           icon={Trophy}
           label="Best Streak"
           value={`${best} ${best === 1 ? "day" : "days"}`}
-          hint="All-time record"
+          hint="Session record"
         />
       </div>
 
-      <section className="neu-raised rounded-3xl p-6" aria-label="Time distribution by category">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="neu-inset-sm grid size-9 place-items-center rounded-full">
-            <Hourglass className="size-4 text-primary" />
-          </span>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            Time Distribution
-          </h2>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <FrogRateCard thisWeek={thisWeek} lastWeek={lastWeek} />
+        <WeeklyBars series={series} />
+      </div>
+
+      <section
+        className="rounded-3xl bg-surface p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+        aria-label="Time distribution by category"
+      >
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-full bg-surface shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
+              <Hourglass className="size-4 text-primary" aria-hidden="true" />
+            </span>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              Time Distribution
+            </h2>
+          </div>
+
+          {/* Filters sit in one row above the chart they drive. */}
+          <div
+            role="group"
+            aria-label="Time distribution range"
+            className="flex gap-1.5 rounded-full bg-surface p-1.5 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+          >
+            {RANGES.map((r) => {
+              const on = r.id === range;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setRange(r.id)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                    on
+                      ? "bg-surface text-primary shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <CategoryDonut metrics={metrics} />
+        <CategoryDonut counts={counts} />
       </section>
+
+      <HabitHeatmap cells={cells} monthLabel={monthLabel} held={heldCount} elapsed={elapsed} />
     </div>
   );
 }

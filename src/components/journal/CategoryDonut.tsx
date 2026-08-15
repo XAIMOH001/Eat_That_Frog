@@ -1,29 +1,22 @@
-import { CATEGORIES } from "@/lib/journal-types";
-import type { DayMetrics } from "@/lib/journal-metrics";
+import { CATEGORIES, type CategoryId } from "@/lib/journal-types";
 
-type Props = { metrics: DayMetrics };
+/** Counts rather than DayMetrics, so the same donut serves a day or a 30-day window. */
+type Props = { counts: Record<CategoryId, number> };
 
-export function CategoryDonut({ metrics }: Props) {
-  const total = metrics.logged;
+export function CategoryDonut({ counts }: Props) {
+  const total = CATEGORIES.reduce((sum, c) => sum + counts[c.id], 0);
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
   let cursor = 0;
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-around">
-      <div className="neu-inset relative grid size-52 shrink-0 place-items-center rounded-full">
-        <svg viewBox="0 0 160 160" className="absolute size-52 -rotate-90">
-          <circle
-            cx="80"
-            cy="80"
-            r={radius}
-            fill="none"
-            stroke="rgba(163,177,198,0.28)"
-            strokeWidth="18"
-          />
+    <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-around">
+      <div className="relative grid size-52 shrink-0 place-items-center rounded-full bg-surface shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
+        <svg viewBox="0 0 160 160" className="absolute size-52 -rotate-90" aria-hidden>
+          <circle cx="80" cy="80" r={radius} fill="none" stroke="#cdd5e0" strokeWidth="18" />
           {total > 0 &&
             CATEGORIES.map((c) => {
-              const value = metrics.counts[c.id];
+              const value = counts[c.id];
               if (!value) return null;
               const length = (value / total) * circumference;
               const dash = `${Math.max(length - 3, 1)} ${circumference}`;
@@ -50,7 +43,7 @@ export function CategoryDonut({ metrics }: Props) {
           <span className="block text-3xl font-semibold tracking-tight text-foreground">
             {total}
           </span>
-          <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             hours logged
           </span>
         </div>
@@ -58,12 +51,12 @@ export function CategoryDonut({ metrics }: Props) {
 
       <ul className="w-full max-w-xs space-y-2.5">
         {CATEGORIES.map((c) => {
-          const value = metrics.counts[c.id];
+          const value = counts[c.id];
           const pct = total ? Math.round((value / total) * 100) : 0;
           return (
             <li
               key={c.id}
-              className="neu-raised-sm flex items-center gap-3 rounded-xl px-3.5 py-2.5"
+              className="flex items-center gap-3 rounded-2xl bg-surface px-3.5 py-2.5 shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
             >
               <span
                 className="size-2.5 shrink-0 rounded-full"
@@ -71,7 +64,7 @@ export function CategoryDonut({ metrics }: Props) {
                 aria-hidden
               />
               <span className="flex-1 text-sm font-medium text-foreground">{c.label}</span>
-              <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="text-sm tabular-nums text-muted-foreground">
                 {value}h · {pct}%
               </span>
             </li>
