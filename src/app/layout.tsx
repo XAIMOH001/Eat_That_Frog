@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
-const title = "Focus Journal — Personal Focus & Time Audit";
+const title = "Eat That Frog — Personal Focus & Time Audit";
 const description =
-  "A daily time-blocking journal: audit every hour, score your discipline, and track focus consistency streaks.";
+  "A daily execution journal: name your frog, audit every hour, and hold your streak.";
 
 export const metadata: Metadata = {
   title,
   description,
-  authors: [{ name: "Focus Journal" }],
+  authors: [{ name: "Eat That Frog" }],
   icons: { icon: "/favicon.ico" },
   openGraph: { title, description, type: "website" },
   twitter: { card: "summary_large_image", title, description },
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={GeistSans.variable}>
-      <body className="bg-[#e0e5ec] text-foreground antialiased">{children}</body>
+      <body className="bg-surface text-foreground antialiased">{children}</body>
     </html>
   );
 }

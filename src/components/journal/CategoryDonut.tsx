@@ -11,7 +11,7 @@ export function CategoryDonut({ metrics }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-around">
-      <div className="relative grid size-52 shrink-0 place-items-center rounded-full bg-[#e0e5ec] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
+      <div className="relative grid size-52 shrink-0 place-items-center rounded-full bg-surface shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
         <svg viewBox="0 0 160 160" className="absolute size-52 -rotate-90" aria-hidden>
           <circle cx="80" cy="80" r={radius} fill="none" stroke="#cdd5e0" strokeWidth="18" />
           {total > 0 &&
@@ -56,7 +56,7 @@ export function CategoryDonut({ metrics }: Props) {
           return (
             <li
               key={c.id}
-              className="flex items-center gap-3 rounded-2xl bg-[#e0e5ec] px-3.5 py-2.5 shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
+              className="flex items-center gap-3 rounded-2xl bg-surface px-3.5 py-2.5 shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
             >
               <span
                 className="size-2.5 shrink-0 rounded-full"

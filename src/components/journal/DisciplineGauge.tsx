@@ -1,10 +1,11 @@
 type Props = { score: number };
 
-function verdict(score: number) {
-  if (score >= 80) return "Exceptional day";
-  if (score >= 60) return "Solid rhythm";
-  if (score >= 35) return "Room to tighten";
-  return "Needs attention";
+export function verdict(score: number) {
+  if (score >= 90) return "Exceptional day";
+  if (score >= 80) return "Routine held, frog eaten";
+  if (score >= 40) return "One commitment held";
+  if (score >= 10) return "Both commitments missed";
+  return "Day not started";
 }
 
 export function DisciplineGauge({ score }: Props) {
@@ -14,7 +15,7 @@ export function DisciplineGauge({ score }: Props) {
 
   return (
     <div className="flex items-center gap-4">
-      <div className="relative grid size-24 shrink-0 place-items-center rounded-full bg-[#e0e5ec] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
+      <div className="relative grid size-24 shrink-0 place-items-center rounded-full bg-surface shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]">
         <svg viewBox="0 0 88 88" className="absolute size-24 -rotate-90" aria-hidden>
           <circle cx="44" cy="44" r={radius} fill="none" stroke="#c8d0dd" strokeWidth="7" />
           <circle
@@ -24,7 +25,7 @@ export function DisciplineGauge({ score }: Props) {
             fill="none"
             stroke="#6c5ce7"
             strokeWidth="7"
-            strokeLinecap="round"
+            strokeLinecap={score === 0 ? "butt" : "round"}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             style={{ transition: "stroke-dashoffset 400ms ease" }}
@@ -36,6 +37,7 @@ export function DisciplineGauge({ score }: Props) {
           aria-valuenow={score}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-valuetext={`${score} out of 100 — ${verdict(score)}`}
           aria-label="Daily discipline score"
         >
           <span className="text-2xl font-semibold tracking-tight text-foreground">{score}</span>

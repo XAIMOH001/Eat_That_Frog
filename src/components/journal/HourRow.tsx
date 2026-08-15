@@ -20,11 +20,11 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
 
   return (
     <div
-      className={`rounded-2xl bg-[#e0e5ec] p-3 transition-shadow duration-200 ease-out sm:p-4 ${
+      className={`rounded-2xl bg-surface p-3 transition-shadow duration-200 ease-out sm:p-4 ${
         category
           ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
           : "shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
-      } ${isNow ? "ring-1 ring-[#6c5ce7]/40" : ""}`}
+      } ${isNow ? "ring-2 ring-accent" : ""}`}
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="flex items-center justify-between gap-3 md:w-28 md:shrink-0">
@@ -33,7 +33,7 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
           </span>
           {meta ? (
             <span
-              className="rounded-full bg-[#e0e5ec] px-2.5 py-1 text-[0.65rem] font-semibold tracking-wider uppercase shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+              className="rounded-full bg-surface px-2.5 py-1 text-[0.65rem] font-semibold tracking-wider uppercase shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
               style={{ color: meta.colorVar }}
             >
               {meta.short}
@@ -50,10 +50,14 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
           onChange={(e) => onNote(e.target.value)}
           placeholder="What happened this hour?"
           aria-label={`Activity note for ${hourLabel(hour)}`}
-          className="min-w-0 flex-1 rounded-2xl bg-[#e0e5ec] px-4 py-2.5 text-sm text-foreground shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-[#6c5ce7]/45"
+          className="min-w-0 flex-1 rounded-2xl bg-surface px-4 py-2.5 text-sm text-foreground shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-accent"
         />
 
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:mx-0 md:shrink-0 md:overflow-visible md:px-0">
+        <div
+          role="group"
+          aria-label={`Category for ${hourLabel(hour)}`}
+          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:mx-0 md:shrink-0 md:overflow-visible md:px-0"
+        >
           {CATEGORIES.map((c) => {
             const active = category === c.id;
             return (
@@ -62,7 +66,7 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
                 type="button"
                 aria-pressed={active}
                 onClick={() => onCategory(active ? null : c.id)}
-                className={`shrink-0 rounded-full bg-[#e0e5ec] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-[#6c5ce7]/45 focus-visible:outline-none ${
+                className={`shrink-0 rounded-full bg-surface px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                   active
                     ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
                     : "shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"

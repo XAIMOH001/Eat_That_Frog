@@ -15,7 +15,10 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
     },
   },
   eslintPluginPrettier,

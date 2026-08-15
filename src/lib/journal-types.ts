@@ -5,13 +5,19 @@ export type HourEntry = {
   category: CategoryId | null;
 };
 
+export type Frog = {
+  text: string;
+  completed: boolean;
+};
+
 export type DayEntry = {
   hours: Record<string, HourEntry>;
-  routineMaintained: boolean;
+  coreRoutineMaintained: boolean;
+  frog: Frog;
 };
 
 export type JournalData = {
-  version: 1;
+  version: 2;
   days: Record<string, DayEntry>;
 };
 
@@ -51,7 +57,7 @@ export function hourLabel(hour: number) {
 }
 
 export function emptyDay(): DayEntry {
-  return { hours: {}, routineMaintained: false };
+  return { hours: {}, coreRoutineMaintained: false, frog: { text: "", completed: false } };
 }
 
 export function dateKey(date: Date) {

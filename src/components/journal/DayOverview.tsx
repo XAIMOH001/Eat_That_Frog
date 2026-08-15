@@ -15,7 +15,7 @@ export function DayOverview({ metrics, streak }: Props) {
 
   return (
     <section
-      className="h-fit rounded-3xl bg-[#e0e5ec] p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+      className="h-fit rounded-3xl bg-surface p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
       aria-label="Day overview"
     >
       <h2 className="text-lg font-semibold tracking-tight text-foreground">Day Overview</h2>
@@ -23,7 +23,7 @@ export function DayOverview({ metrics, streak }: Props) {
         {rows.map((row) => (
           <li
             key={row.label}
-            className="flex items-center justify-between rounded-2xl bg-[#e0e5ec] px-4 py-3 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+            className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
           >
             <span className="text-sm font-medium text-foreground">{row.label}</span>
             <span className="text-sm font-semibold tabular-nums" style={{ color: row.color }}>
@@ -32,7 +32,7 @@ export function DayOverview({ metrics, streak }: Props) {
           </li>
         ))}
       </ul>
-      <div className="mt-5 rounded-2xl bg-[#e0e5ec] px-4 py-4 text-center shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
+      <div className="mt-5 rounded-2xl bg-surface px-4 py-4 text-center shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
         <p className="text-[0.65rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           Focus Consistency Streak
         </p>

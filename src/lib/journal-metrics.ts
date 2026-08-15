@@ -17,6 +17,10 @@ export type DayMetrics = {
   disciplineScore: number;
 };
 
+const ROUTINE_POINTS = 40;
+const FROG_POINTS = 40;
+const HOUR_POINTS = 20;
+
 export function dayMetrics(day: DayEntry | undefined): DayMetrics {
   const entry = day ?? emptyDay();
   const counts: Record<CategoryId, number> = { focus: 0, admin: 0, rest: 0, wasted: 0 };
@@ -29,12 +33,18 @@ export function dayMetrics(day: DayEntry | undefined): DayMetrics {
   const productive = counts.focus + counts.admin;
   const wasted = counts.wasted;
 
-  // Weighted: coverage of the day, share of focused work, routine adherence.
-  const coverage = Math.min(logged / 16, 1);
-  const focusShare = logged > 0 ? (counts.focus + counts.admin * 0.6) / logged : 0;
-  const wastePenalty = logged > 0 ? counts.wasted / logged : 0;
+  const working = counts.focus + counts.admin + counts.wasted;
+  const coverage = Math.min(working / 8, 1);
+  const focusShare = working > 0 ? (counts.focus + counts.admin * 0.6) / working : 0;
+  const wastePenalty = working > 0 ? counts.wasted / working : 0;
+  const hourRaw = coverage * 25 + focusShare * 45 - wastePenalty * 15;
+
+  const hourScore = Math.min(Math.max((hourRaw - 20) / 45, 0), 1) * HOUR_POINTS;
+
   const raw =
-    coverage * 25 + focusShare * 45 - wastePenalty * 15 + (entry.routineMaintained ? 30 : 0);
+    (entry.coreRoutineMaintained ? ROUTINE_POINTS : 0) +
+    (entry.frog.completed ? FROG_POINTS : 0) +
+    hourScore;
 
   return {
     counts,
@@ -50,9 +60,8 @@ export function dayMetrics(day: DayEntry | undefined): DayMetrics {
 export function routineStreak(data: JournalData, fromKey: string): number {
   let streak = 0;
   let cursor = fromKey;
-  // If today isn't checked yet, start counting from yesterday.
-  if (!data.days[cursor]?.routineMaintained) cursor = shiftKey(cursor, -1);
-  while (data.days[cursor]?.routineMaintained) {
+  if (!data.days[cursor]?.coreRoutineMaintained) cursor = shiftKey(cursor, -1);
+  while (data.days[cursor]?.coreRoutineMaintained) {
     streak += 1;
     cursor = shiftKey(cursor, -1);
   }
@@ -61,7 +70,7 @@ export function routineStreak(data: JournalData, fromKey: string): number {
 
 export function bestStreak(data: JournalData): number {
   const keys = Object.keys(data.days)
-    .filter((k) => data.days[k]?.routineMaintained)
+    .filter((k) => data.days[k]?.coreRoutineMaintained)
     .sort();
   let best = 0;
   let run = 0;

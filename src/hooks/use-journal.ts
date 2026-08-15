@@ -9,7 +9,7 @@ import {
 } from "@/lib/journal-types";
 
 export function useJournal() {
-  const [data, setData] = useState<JournalData>({ version: 1, days: {} });
+  const [data, setData] = useState<JournalData>({ version: 2, days: {} });
   const [selected, setSelected] = useState(() => dateKey(new Date()));
 
   const day = useMemo(() => data.days[selected] ?? emptyDay(), [data, selected]);
@@ -48,11 +48,21 @@ export function useJournal() {
   );
 
   const setRoutine = useCallback(
-    (value: boolean) => mutateDay((d) => ({ ...d, routineMaintained: value })),
+    (value: boolean) => mutateDay((d) => ({ ...d, coreRoutineMaintained: value })),
     [mutateDay],
   );
 
-  const clearDay = useCallback(() => mutateDay(() => emptyDay()), [mutateDay]);
+  const setFrogText = useCallback(
+    (text: string) => mutateDay((d) => ({ ...d, frog: { ...d.frog, text } })),
+    [mutateDay],
+  );
+
+  const setFrogCompleted = useCallback(
+    (value: boolean) => mutateDay((d) => ({ ...d, frog: { ...d.frog, completed: value } })),
+    [mutateDay],
+  );
+
+  const clearLog = useCallback(() => mutateDay((d) => ({ ...d, hours: {} })), [mutateDay]);
 
   const goDay = useCallback((delta: number) => setSelected((key) => shiftKey(key, delta)), []);
 
@@ -65,6 +75,8 @@ export function useJournal() {
     setNote,
     setCategory,
     setRoutine,
-    clearDay,
+    setFrogText,
+    setFrogCompleted,
+    clearLog,
   };
 }

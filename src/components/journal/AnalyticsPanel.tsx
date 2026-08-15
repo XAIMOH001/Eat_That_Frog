@@ -45,12 +45,12 @@ export function AnalyticsPanel({ metrics, streak, best }: Props) {
       </div>
 
       <section
-        className="rounded-3xl bg-[#e0e5ec] p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+        className="rounded-3xl bg-surface p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
         aria-label="Time distribution by category"
       >
         <div className="mb-6 flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-full bg-[#e0e5ec] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
-            <Hourglass className="size-4 text-primary" />
+          <span className="grid size-9 place-items-center rounded-full bg-surface shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
+            <Hourglass className="size-4 text-primary" aria-hidden="true" />
           </span>
           <h2 className="text-lg font-semibold tracking-tight text-foreground">
             Time Distribution
