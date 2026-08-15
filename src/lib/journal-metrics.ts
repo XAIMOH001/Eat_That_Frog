@@ -101,6 +101,113 @@ export function recomputeActualHours(data: JournalData): JournalData {
   return changed ? { ...data, tasks } : data;
 }
 
+/* ---------------------------------------------------------------- ranges --- */
+
+/** Inclusive window of `days` keys ending at `endKey`, oldest first. */
+export function rangeKeys(endKey: string, days: number): string[] {
+  const out: string[] = [];
+  for (let i = days - 1; i >= 0; i--) out.push(shiftKey(endKey, -i));
+  return out;
+}
+
+export type DayBar = {
+  key: string;
+  productive: number;
+  wasted: number;
+  rest: number;
+  total: number;
+};
+
+/** Per-day productive/wasted/rest totals across the window. */
+export function dailySeries(data: JournalData, endKey: string, days: number): DayBar[] {
+  return rangeKeys(endKey, days).map((key) => {
+    const day = data.days[key];
+    let productive = 0;
+    let wasted = 0;
+    let rest = 0;
+    for (const slot of Object.values(day?.hours ?? {})) {
+      if (slot?.category === "focus" || slot?.category === "admin") productive += 1;
+      else if (slot?.category === "wasted") wasted += 1;
+      else if (slot?.category === "rest") rest += 1;
+    }
+    return { key, productive, wasted, rest, total: productive + wasted + rest };
+  });
+}
+
+/** Category counts summed across the window — feeds the donut's range toggle. */
+export function rangeCounts(
+  data: JournalData,
+  endKey: string,
+  days: number,
+): Record<CategoryId, number> {
+  const counts: Record<CategoryId, number> = { focus: 0, admin: 0, rest: 0, wasted: 0 };
+  for (const key of rangeKeys(endKey, days)) {
+    for (const slot of Object.values(data.days[key]?.hours ?? {})) {
+      if (slot?.category) counts[slot.category] += 1;
+    }
+  }
+  return counts;
+}
+
+export type FrogRate = { planned: number; eaten: number; pct: number };
+
+/**
+ * Share of A1 frogs eaten in the window. Days with no frog named are not counted
+ * against you — you can only fail to eat a frog you actually set.
+ */
+export function frogRate(data: JournalData, endKey: string, days: number): FrogRate {
+  const window = new Set(rangeKeys(endKey, days));
+  let planned = 0;
+  let eaten = 0;
+  for (const task of Object.values(data.tasks)) {
+    if (task.priority !== "A1" || !window.has(task.targetDate)) continue;
+    planned += 1;
+    if (task.completed) eaten += 1;
+  }
+  return { planned, eaten, pct: planned > 0 ? Math.round((eaten / planned) * 100) : 0 };
+}
+
+export type HeatCell = {
+  key: string;
+  day: number;
+  held: boolean;
+  logged: boolean;
+  future: boolean;
+};
+
+/**
+ * Calendar grid for the month containing `anchorKey`, padded to whole weeks starting Monday.
+ * Cells outside the month are omitted (null) so the grid keeps its shape without inventing days.
+ */
+export function monthGrid(
+  data: JournalData,
+  anchorKey: string,
+  todayKey: string,
+): (HeatCell | null)[] {
+  const [y, m] = anchorKey.split("-").map(Number);
+  const year = y ?? 1970;
+  const month = (m ?? 1) - 1;
+  const first = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // getDay() is Sunday-based; shift so Monday is column 0.
+  const lead = (first.getDay() + 6) % 7;
+
+  const cells: (HeatCell | null)[] = Array.from({ length: lead }, () => null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const entry = data.days[key];
+    cells.push({
+      key,
+      day: d,
+      held: entry?.coreRoutineMaintained ?? false,
+      logged: Object.keys(entry?.hours ?? {}).length > 0,
+      future: key > todayKey,
+    });
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
 export function bestStreak(data: JournalData): number {
   const keys = Object.keys(data.days)
     .filter((k) => data.days[k]?.coreRoutineMaintained)

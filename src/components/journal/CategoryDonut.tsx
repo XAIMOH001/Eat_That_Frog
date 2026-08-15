@@ -1,10 +1,10 @@
-import type { DayMetrics } from "@/lib/journal-metrics";
-import { CATEGORIES } from "@/lib/journal-types";
+import { CATEGORIES, type CategoryId } from "@/lib/journal-types";
 
-type Props = { metrics: DayMetrics };
+/** Counts rather than DayMetrics, so the same donut serves a day or a 30-day window. */
+type Props = { counts: Record<CategoryId, number> };
 
-export function CategoryDonut({ metrics }: Props) {
-  const total = metrics.logged;
+export function CategoryDonut({ counts }: Props) {
+  const total = CATEGORIES.reduce((sum, c) => sum + counts[c.id], 0);
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
   let cursor = 0;
@@ -16,7 +16,7 @@ export function CategoryDonut({ metrics }: Props) {
           <circle cx="80" cy="80" r={radius} fill="none" stroke="#cdd5e0" strokeWidth="18" />
           {total > 0 &&
             CATEGORIES.map((c) => {
-              const value = metrics.counts[c.id];
+              const value = counts[c.id];
               if (!value) return null;
               const length = (value / total) * circumference;
               const dash = `${Math.max(length - 3, 1)} ${circumference}`;
@@ -51,7 +51,7 @@ export function CategoryDonut({ metrics }: Props) {
 
       <ul className="w-full max-w-xs space-y-2.5">
         {CATEGORIES.map((c) => {
-          const value = metrics.counts[c.id];
+          const value = counts[c.id];
           const pct = total ? Math.round((value / total) * 100) : 0;
           return (
             <li

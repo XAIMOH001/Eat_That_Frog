@@ -179,7 +179,14 @@ export function JournalDashboard() {
               </div>
             </div>
           ) : (
-            <AnalyticsPanel metrics={metrics} streak={streak} best={best} />
+            <AnalyticsPanel
+              data={journal.data}
+              metrics={metrics}
+              selected={journal.selected}
+              todayKey={todayKey}
+              streak={streak}
+              best={best}
+            />
           )}
         </div>
 
