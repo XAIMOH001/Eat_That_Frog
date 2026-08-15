@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LayoutGrid, PieChart, Trash2 } from "lucide-react";
 import { AnalyticsPanel } from "./AnalyticsPanel";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { DayOverview } from "./DayOverview";
 import { verdict } from "./DisciplineGauge";
 import { FrogCard } from "./FrogCard";
@@ -12,7 +13,7 @@ import { TaskQueue } from "./TaskQueue";
 import { PLAN_TOMORROW_CLOSE_HOUR, PLAN_TOMORROW_OPEN_HOUR, useJournal } from "@/hooks/use-journal";
 import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
 import { routineStreak } from "@/lib/routine-lock";
-import { dateKey, shiftKey } from "@/lib/journal-types";
+import { dateKey, prettyDate, shiftKey } from "@/lib/journal-types";
 
 const TABS = [
   { id: "journal", label: "Journal", icon: LayoutGrid },
@@ -21,7 +22,12 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-const fmtHour = (h: number) => `${String(h % 12 || 12)}${h < 12 ? "am" : "pm"}`;
+// Wrap into the 24h day first: the close hour is expressed as 24, and formatting that
+// directly yields "12pm" — the label would say the planning window shuts at noon.
+const fmtHour = (h: number) => {
+  const hr = h % 24;
+  return `${hr % 12 || 12}${hr < 12 ? "am" : "pm"}`;
+};
 const PLAN_WINDOW_LABEL = `${fmtHour(PLAN_TOMORROW_OPEN_HOUR)}–${fmtHour(
   PLAN_TOMORROW_CLOSE_HOUR + 1,
 )}`;
@@ -32,6 +38,7 @@ export function JournalDashboard() {
   const now = new Date();
   const journal = useJournal(now);
   const [tab, setTab] = useState<TabId>("journal");
+  const [confirmClear, setConfirmClear] = useState(false);
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -82,6 +89,9 @@ export function JournalDashboard() {
   const setFrogCompleted = (completed: boolean) => {
     if (frog) updateTask(frog.id, { completed });
   };
+
+  const loggedHours = Object.values(journal.day.hours).filter((h) => h?.category || h?.note).length;
+  const taggedHours = Object.values(journal.day.hours).filter((h) => h?.taskId).length;
 
   return (
     <main className="min-h-screen bg-surface px-4 py-6 sm:px-6 sm:py-10">
@@ -140,8 +150,17 @@ export function JournalDashboard() {
 
           <button
             type="button"
-            onClick={journal.clearLog}
-            className="flex items-center justify-center gap-2 rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            // aria-disabled rather than `disabled`: the control stays in the tab order, so its
+            // state is discoverable instead of the button silently vanishing for keyboard users.
+            aria-disabled={loggedHours === 0}
+            onClick={() => {
+              if (loggedHours > 0) setConfirmClear(true);
+            }}
+            className={`flex items-center justify-center gap-2 rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+              loggedHours === 0
+                ? "shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
+                : "shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+            }`}
           >
             <Trash2 className="size-4" aria-hidden="true" />
             Clear Log
@@ -191,6 +210,32 @@ export function JournalDashboard() {
             />
           )}
         </div>
+
+        <ConfirmDialog
+          open={confirmClear}
+          title="Clear the hour log?"
+          body={
+            <>
+              <p>
+                This removes {loggedHours === 1 ? "1 logged hour" : `${loggedHours} logged hours`}
+                {taggedHours > 0
+                  ? ` and ${taggedHours === 1 ? "its task tag" : `their ${taggedHours} task tags`}`
+                  : ""}{" "}
+                for {prettyDate(journal.selected)}.
+              </p>
+              {taggedHours > 0 ? (
+                <p>Hours logged against your tasks will drop back to zero.</p>
+              ) : null}
+              <p>Your frog and the routine flag are not affected. This cannot be undone.</p>
+            </>
+          }
+          confirmLabel="Clear Log"
+          onConfirm={() => {
+            journal.clearLog();
+            setConfirmClear(false);
+          }}
+          onCancel={() => setConfirmClear(false)}
+        />
 
         <footer className="rounded-2xl bg-surface px-5 py-3.5 text-center shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
           <p className="text-xs text-muted-foreground">

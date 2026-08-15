@@ -53,6 +53,12 @@ HourEntry    note, category (focus|admin|rest|wasted), taskId
 
 State is in-memory for the duration of the session. Reloading clears everything.
 
+**Clear Log** wipes the day's 24 hour rows and their task tags, which also drops every
+task's `actualHours` back to zero. It is gated behind `ConfirmDialog` — the app's one modal,
+with a focus trap, Escape to cancel, backdrop dismiss and focus returned to the trigger. The
+dialog names what will be lost rather than asking a generic "are you sure", and the button is
+disabled when there is nothing to clear. The frog and the routine flag are never touched.
+
 ---
 
 ## Daily Discipline Score
