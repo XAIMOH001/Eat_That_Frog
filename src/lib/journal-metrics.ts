@@ -38,7 +38,7 @@ const FOCUS_SHARE = 0.5;
 const ADMIN_WEIGHT = 0.6;
 
 /** Productive hours that count as a full day. Volume saturates here. */
-const FULL_DAY_HOURS = 8;
+const FULL_DAY_HOURS = 6;
 
 export function dayMetrics(data: JournalData, key: string, day: DayEntry | undefined): DayMetrics {
   const entry = day ?? emptyDay();
@@ -78,7 +78,7 @@ export function dayMetrics(data: JournalData, key: string, day: DayEntry | undef
   // Volume multiplies the quality points rather than adding a fourth weighted term. S_Plan and
   // S_Focus are ratios, and a ratio over one hour is not evidence of a disciplined day: additive
   // weighting still paid a single tagged focus hour 83/100. Multiplying makes the quality points
-  // something you earn in proportion to the hours actually worked — the same day scores 48.
+  // something you earn in proportion to the hours actually worked — the same day scores 50.
   const raw =
     sFrog * (FROG_POINTS / 100) +
     QUALITY_POINTS * volume * ((sPlan / 100) * PLAN_SHARE + (sFocus / 100) * FOCUS_SHARE);

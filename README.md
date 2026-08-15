@@ -61,7 +61,7 @@ State is in-memory for the duration of the session. Reloading clears everything.
 score = 40 · S_Frog  +  60 · volume · (S_Plan + S_Focus) / 2
 
 S_Frog   1 if the A1 task is completed, else 0
-volume   min(productive hours / 8, 1)
+volume   min(productive hours / 6, 1)
 S_Plan   productive hours tagged to a planned task / productive hours
 S_Focus  (focus + 0.6 · admin) / (focus + admin + wasted)
 ```
@@ -70,7 +70,7 @@ The frog is worth 40 outright. The other 60 are **earned against the hours actua
 worked** — volume multiplies the quality terms rather than sitting beside them as a fourth
 weighted term. S_Plan and S_Focus are ratios, and a ratio over a single hour is not evidence
 of a disciplined day: weighting volume additively still paid one tagged focus hour 83/100,
-where multiplying scores it 48.
+where multiplying scores it 50.
 
 | Day                            | Score |
 | ------------------------------ | ----- |
@@ -95,10 +95,12 @@ Other decisions worth knowing before you touch this:
 - **Core Routine does not score.** It drives the streak and the lockout only, so a day with
   the routine held but the frog uneaten tops out at 60.
 - **Volume counts productive hours only**, so a squandered day cannot inflate it and Rest
-  stays outside every term. It saturates at 8 — a tenth hour adds nothing.
+  stays outside every term. It saturates at **6** — the view being that six hours of genuine
+  focused work is already a full day, and an eighth adds nothing. This is the one knob most
+  worth revisiting from real use: `FULL_DAY_HOURS` in `journal-metrics.ts`.
 
 `verdict()` takes the frog flag rather than inferring it from the total. A day with no frog
-but eight fully planned hours reaches 60, which score-only bands reported as "Frog eaten" —
+but six fully planned hours reaches 60, which score-only bands reported as "Frog eaten" —
 stating the opposite of what happened. The two ladders are independent: 40 points are the
 frog, 60 are the hours, and the wording never claims one from the other.
 
