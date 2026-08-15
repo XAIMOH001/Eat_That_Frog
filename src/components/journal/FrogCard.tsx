@@ -15,7 +15,7 @@ export function FrogCard({ frog, onText, onCompleted }: Props) {
   return (
     <section
       className="rounded-3xl bg-surface p-5 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-6"
-      aria-label="Today's frog"
+      aria-label="Eat that frog"
     >
       <div className="flex items-center gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
