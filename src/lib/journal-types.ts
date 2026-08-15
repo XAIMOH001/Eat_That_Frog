@@ -10,11 +10,17 @@ export type HourEntry = {
 /** ABCDE method: A1 is the frog — the single hardest, most important task. */
 export type TaskPriority = "A1" | "A2" | "B" | "C";
 
-export const TASK_PRIORITIES: { id: TaskPriority; label: string; hint: string }[] = [
-  { id: "A1", label: "A1", hint: "The frog — hardest and most important" },
-  { id: "A2", label: "A2", hint: "Must do, serious consequences if skipped" },
-  { id: "B", label: "B", hint: "Should do, mild consequences" },
-  { id: "C", label: "C", hint: "Nice to do, no consequences" },
+export const TASK_PRIORITIES: {
+  id: TaskPriority;
+  label: string;
+  /** Short enough to keep a <select>'s intrinsic width in check. */
+  short: string;
+  hint: string;
+}[] = [
+  { id: "A1", label: "A1", short: "Frog", hint: "The frog — hardest and most important" },
+  { id: "A2", label: "A2", short: "Must do", hint: "Must do, serious consequences if skipped" },
+  { id: "B", label: "B", short: "Should do", hint: "Should do, mild consequences" },
+  { id: "C", label: "C", short: "Nice to do", hint: "Nice to do, no consequences" },
 ];
 
 export type PlannedTask = {

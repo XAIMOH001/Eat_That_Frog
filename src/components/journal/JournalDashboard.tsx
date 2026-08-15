@@ -8,10 +8,11 @@ import { verdict } from "./DisciplineGauge";
 import { FrogCard } from "./FrogCard";
 import { HeaderBar } from "./HeaderBar";
 import { HourGrid } from "./HourGrid";
-import { useJournal } from "@/hooks/use-journal";
+import { TaskQueue } from "./TaskQueue";
+import { PLAN_TOMORROW_CLOSE_HOUR, PLAN_TOMORROW_OPEN_HOUR, useJournal } from "@/hooks/use-journal";
 import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
 import { routineStreak } from "@/lib/routine-lock";
-import { dateKey } from "@/lib/journal-types";
+import { dateKey, shiftKey } from "@/lib/journal-types";
 
 const TABS = [
   { id: "journal", label: "Journal", icon: LayoutGrid },
@@ -19,6 +20,11 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+const fmtHour = (h: number) => `${String(h % 12 || 12)}${h < 12 ? "am" : "pm"}`;
+const PLAN_WINDOW_LABEL = `${fmtHour(PLAN_TOMORROW_OPEN_HOUR)}–${fmtHour(
+  PLAN_TOMORROW_CLOSE_HOUR + 1,
+)}`;
 
 export function JournalDashboard() {
   // Single clock read per render, threaded into everything that needs "now" so no module
@@ -152,10 +158,25 @@ export function JournalDashboard() {
               <HourGrid
                 day={journal.day}
                 currentHour={currentHour}
+                tasks={journal.tasks}
                 onNote={journal.setNote}
                 onCategory={journal.setCategory}
+                onTask={journal.setHourTask}
               />
-              <DayOverview metrics={metrics} streak={streak} />
+              <div className="flex min-w-0 flex-col gap-6">
+                <TaskQueue
+                  tasks={journal.tasks}
+                  targetDate={journal.selected}
+                  isToday={journal.selected === todayKey}
+                  tomorrowKey={shiftKey(todayKey, 1)}
+                  planTomorrowOpen={journal.planTomorrowOpen}
+                  planWindow={PLAN_WINDOW_LABEL}
+                  onAdd={journal.addTask}
+                  onToggle={(id, completed) => journal.updateTask(id, { completed })}
+                  onRemove={journal.removeTask}
+                />
+                <DayOverview metrics={metrics} streak={streak} />
+              </div>
             </div>
           ) : (
             <AnalyticsPanel metrics={metrics} streak={streak} best={best} />

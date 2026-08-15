@@ -1,17 +1,21 @@
 import { HourRow } from "./HourRow";
-import { HOURS, type CategoryId, type DayEntry } from "@/lib/journal-types";
+import { HOURS, type CategoryId, type DayEntry, type PlannedTask } from "@/lib/journal-types";
 
 type Props = {
   day: DayEntry;
   currentHour: number | null;
+  tasks: PlannedTask[];
   onNote: (hour: number, value: string) => void;
   onCategory: (hour: number, value: CategoryId | null) => void;
+  onTask: (hour: number, taskId: string | null) => void;
 };
 
-export function HourGrid({ day, currentHour, onNote, onCategory }: Props) {
+export function HourGrid({ day, currentHour, tasks, onNote, onCategory, onTask }: Props) {
   return (
     <section
-      className="rounded-3xl bg-surface p-4 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-6"
+      // min-w-0: a grid item defaults to min-width:auto and would otherwise be sized by the
+      // widest hour row, pushing the whole page into horizontal scroll at tablet widths.
+      className="min-w-0 rounded-3xl bg-surface p-4 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-6"
       aria-label="Hourly schedule matrix"
     >
       <div className="mb-4 flex items-baseline justify-between gap-3">
@@ -29,8 +33,10 @@ export function HourGrid({ day, currentHour, onNote, onCategory }: Props) {
               hour={hour}
               entry={day.hours[String(hour)]}
               isNow={currentHour === hour}
+              tasks={tasks}
               onNote={(value) => onNote(hour, value)}
               onCategory={(value) => onCategory(hour, value)}
+              onTask={(taskId) => onTask(hour, taskId)}
             />
           </li>
         ))}

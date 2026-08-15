@@ -4,19 +4,25 @@ import {
   hourLabel,
   type CategoryId,
   type HourEntry,
+  type PlannedTask,
 } from "@/lib/journal-types";
 
 type Props = {
   hour: number;
   entry: HourEntry | undefined;
   isNow: boolean;
+  /** Today's planned tasks, for the swiss-cheese tag. Empty hides the control entirely. */
+  tasks: PlannedTask[];
   onNote: (value: string) => void;
   onCategory: (value: CategoryId | null) => void;
+  onTask: (taskId: string | null) => void;
 };
 
-export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
+export function HourRow({ hour, entry, isNow, tasks, onNote, onCategory, onTask }: Props) {
   const category = entry?.category ?? null;
   const meta = category ? categoryMeta(category) : null;
+  const taskId = entry?.taskId ?? null;
+  const tagged = taskId ? tasks.find((t) => t.id === taskId) : undefined;
 
   return (
     <div
@@ -53,6 +59,28 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
           className="min-w-0 flex-1 rounded-2xl bg-surface px-4 py-2.5 text-sm text-foreground shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-accent"
         />
 
+        {/* Only offered once something is planned, so an unplanned day keeps the original row.
+            A native select rather than a custom combobox: keyboard and screen-reader behaviour
+            come free, and it collapses to the priority code when space is tight. */}
+        {tasks.length > 0 ? (
+          <select
+            value={taskId ?? ""}
+            onChange={(e) => onTask(e.target.value || null)}
+            aria-label={`Planned task for ${hourLabel(hour)}`}
+            title={tagged ? `${tagged.priority} · ${tagged.title}` : "Not linked to a planned task"}
+            className={`w-full shrink-0 rounded-2xl bg-surface px-3 py-2 text-xs font-medium shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none focus-visible:ring-2 focus-visible:ring-accent md:w-28 ${
+              tagged ? "text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            <option value="">— task</option>
+            {tasks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.priority} · {t.title}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
         <div
           role="group"
           aria-label={`Category for ${hourLabel(hour)}`}
@@ -71,7 +99,7 @@ export function HourRow({ hour, entry, isNow, onNote, onCategory }: Props) {
                     ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
                     : "shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
                 }`}
-                style={{ color: active ? c.colorVar : "#6b7890" }}
+                style={{ color: active ? c.colorVar : "var(--color-muted-foreground)" }}
               >
                 {c.short}
               </button>
