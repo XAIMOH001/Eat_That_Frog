@@ -1,6 +1,38 @@
-# Time Weaver
+# `Eat That Frog`: Personal Focus & Time-Audit Journal
 
-A daily focus and time-audit journal. Name the one task that matters, plan the rest by
+> **Plan your intentions, audit your reality, and eliminate low-value busyness.**
+
+**Time Weaver** is a precision focus and time-blocking journal engineered to bridge the gap between what you plan to do and how you actually spend your time. Built around Brian Tracy’s *Eat That Frog!* methodology and structured on a 24-hour schedule matrix, it forces a daily confrontation between your highest-impact goals and your actual hourly habits—keeping you strictly accountable to your core daily discipline.
+
+---
+
+## Overview & Philosophy
+
+Most productivity tools suffer from a fundamental flaw: they record what you *hope* to do, but never audit where your time *actually went*. Time Weaver pairs advance prioritization with a 24-hour time audit to eliminate the gap between intent and execution.
+
+* **The A1 "Frog":** Mark Twain famously remarked that if you eat a live frog first thing in the morning, you can go through the day knowing it is probably the worst thing that will happen to you. In Time Weaver, your "Frog" is your single highest-consequence task—the one thing that yields maximum impact if completed.
+* **The 10/90 Rule:** Spending 10% of your time planning in advance saves 90% of the execution effort. The integrated task queue lets you draft tomorrow's priorities before your head hits the pillow.
+* **The Reality Audit:** A full 24-hour time matrix requires you to tag every hour as `Focus`, `Admin`, `Rest`, or `Wasted`, giving you an honest, objective breakdown of your daily execution.
+
+---
+
+## Value Proposition
+
+* **Intent vs. Reality Alignment:** Compare planned priority tasks against actual logged hours to calculate a real-time **Execution Ratio**.
+* **High-Impact Priority Execution:** Anchor every day to your **A1 Frog** before low-value reactive tasks consume your energy.
+* **Objective Discipline Metrics:** Replace subjective feelings of productivity with a calculated **Daily Discipline Score** (calibrated against a realistic 6-hour waking focus target).
+* **Habit Architecture & Lockout Guard:** Build unbroken routine streaks with an automated **18-hour lockout rule** that prevents retroactive logging or streak cheating.
+* **Discreet Neumorphic UI:** Built with a tactile, soft grey design system (`#e0e5ec`) and privacy-conscious data models (`coreRoutineMaintained`) to ensure over-the-shoulder privacy in any setting.
+
+---
+
+## Key Features
+
+* **24-Hour Schedule Matrix:** Log hourly notes and tag activities directly with linked ABCDE tasks.
+* **ABCDE Task Queue:** Categorize tasks into A1 (Primary Frog), A2/A3 (Sub-Frogs), B (Tadpoles), and C (Nice-to-Haves).
+* **Daily Discipline Score Gauge:** A dynamic 0–100 score engine weighting Frog completion (40%), planned execution ratio (30%), and focus hours (30%).
+* **18-Hour Core Routine Lockout:** Date-bounded state machine that locks the routine toggle after execution and resets streaks to 0 if a day expires unlogged.
+* **Analytics & Multi-Day Trends:** Long-term productivity analytics including a 7-day stacked bar chart (Productive vs. Wasted time) and a GitHub-style habit consistency heatmap.rest by
 priority, log where the day actually went, and see how the two compare.
 
 Next.js 16 (App Router) · React 19 · TypeScript 5.8 · Tailwind v4 · Bun
