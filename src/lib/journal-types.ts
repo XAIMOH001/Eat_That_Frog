@@ -76,7 +76,7 @@ export const CATEGORIES: {
   {
     id: "wasted",
     label: "Unproductive",
-    short: "Wasted",
+    short: "Leaks",
     colorVar: "var(--cat-wasted)",
     productive: false,
   },

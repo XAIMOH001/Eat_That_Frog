@@ -64,9 +64,9 @@ export function AnalyticsPanel({ data, metrics, selected, todayKey, streak, best
         />
         <StatCard
           icon={TrendingDown}
-          label="Wasted Hours"
+          label="Time Leaks"
           value={`${metrics.wasted}h`}
-          hint={metrics.wasted ? `Ratio ${ratio} : 1 in your favour` : "Nothing logged as wasted"}
+          hint={metrics.wasted ? `Ratio ${ratio} : 1 in your favour` : "No time leaks logged"}
           tone="warning"
         />
         <StatCard

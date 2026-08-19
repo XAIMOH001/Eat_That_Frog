@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, PieChart, Trash2 } from "lucide-react";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { CoreRoutineModal } from "./CoreRoutineModal";
+import { DailyQuoteCard } from "./DailyQuoteCard";
 import { DayOverview } from "./DayOverview";
 import { verdict } from "./DisciplineGauge";
 import { FrogCard } from "./FrogCard";
@@ -12,7 +14,7 @@ import { HourGrid } from "./HourGrid";
 import { TaskQueue } from "./TaskQueue";
 import { PLAN_TOMORROW_CLOSE_HOUR, PLAN_TOMORROW_OPEN_HOUR, useJournal } from "@/hooks/use-journal";
 import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
-import { routineStreak } from "@/lib/routine-lock";
+import { isRoutineEditable, routineStreak } from "@/lib/routine-lock";
 import { dateKey, prettyDate, shiftKey } from "@/lib/journal-types";
 
 const TABS = [
@@ -21,6 +23,13 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+/**
+ * Exactly one dialog at a time. Both save and restore document.body.style.overflow on open and
+ * close, so two open at once can restore "hidden" last and leave the page unscrollable with
+ * nothing on screen to dismiss.
+ */
+type DialogId = "clear" | "routine";
 
 // Wrap into the 24h day first: the close hour is expressed as 24, and formatting that
 // directly yields "12pm" — the label would say the planning window shuts at noon.
@@ -38,8 +47,10 @@ export function JournalDashboard() {
   const now = new Date();
   const journal = useJournal(now);
   const [tab, setTab] = useState<TabId>("journal");
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [dialog, setDialog] = useState<DialogId | null>(null);
   const [, tick] = useState(0);
+
+  const closeDialog = useCallback(() => setDialog(null), []);
 
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 60_000);
@@ -79,6 +90,12 @@ export function JournalDashboard() {
   );
   const best = useMemo(() => bestStreak(journal.data), [journal.data]);
 
+  // Midnight can pass while the modal sits open, at which point the hook's own guard would
+  // reject the write and Confirm would be a silent no-op. Derived rather than synced through an
+  // effect: the 60s tick re-evaluates this, the modal unmounts itself, and the toggle falls
+  // through to showing the day as missed.
+  const routineEditable = isRoutineEditable(journal.lockState);
+
   // The frog card edits the A1 task by title, creating it on first keystroke. Kept here rather
   // than in the hook so the card stays a dumb text/checkbox control until the full queue lands.
   const { frog, addTask, updateTask, selected } = journal;
@@ -104,8 +121,15 @@ export function JournalDashboard() {
           frogEaten={metrics.sFrog === 100}
           routine={journal.day.coreRoutineMaintained}
           routineState={journal.lockState}
-          onRoutine={journal.setRoutine}
+          onRoutineRequest={(value) => {
+            // Only anchoring is gated. `value === false` is reachable solely in the reopened
+            // state, where nothing is locked and there is no commitment to confirm.
+            if (value) setDialog("routine");
+            else journal.setRoutine(false);
+          }}
         />
+
+        <DailyQuoteCard key={journal.selected} dateKey={journal.selected} />
 
         <FrogCard frog={journal.frog} onText={setFrogTitle} onCompleted={setFrogCompleted} />
 
@@ -150,11 +174,9 @@ export function JournalDashboard() {
 
           <button
             type="button"
-            // aria-disabled rather than `disabled`: the control stays in the tab order, so its
-            // state is discoverable instead of the button silently vanishing for keyboard users.
             aria-disabled={loggedHours === 0}
             onClick={() => {
-              if (loggedHours > 0) setConfirmClear(true);
+              if (loggedHours > 0) setDialog("clear");
             }}
             className={`flex items-center justify-center gap-2 rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
               loggedHours === 0
@@ -212,7 +234,7 @@ export function JournalDashboard() {
         </div>
 
         <ConfirmDialog
-          open={confirmClear}
+          open={dialog === "clear"}
           title="Clear the hour log?"
           body={
             <>
@@ -232,9 +254,18 @@ export function JournalDashboard() {
           confirmLabel="Clear Log"
           onConfirm={() => {
             journal.clearLog();
-            setConfirmClear(false);
+            closeDialog();
           }}
-          onCancel={() => setConfirmClear(false)}
+          onCancel={closeDialog}
+        />
+
+        <CoreRoutineModal
+          open={dialog === "routine" && routineEditable}
+          onConfirm={() => {
+            journal.setRoutine(true);
+            closeDialog();
+          }}
+          onCancel={closeDialog}
         />
 
         <footer className="rounded-2xl bg-surface px-5 py-3.5 text-center shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
