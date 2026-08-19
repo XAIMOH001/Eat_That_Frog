@@ -8,6 +8,7 @@ type Props = {
   selected: string;
   onSelect: (key: string) => void;
   onShift: (delta: number) => void;
+  navPending: boolean;
   score: number;
   frogEaten: boolean;
   routine: boolean;
@@ -20,12 +21,13 @@ const MIN_DATE = "2000-01-01";
 const MAX_DATE = "2100-12-31";
 
 const navButton =
-  "grid size-10 place-items-center rounded-full bg-surface text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
+  "grid size-10 place-items-center rounded-full bg-surface text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50";
 
 export function HeaderBar({
   selected,
   onSelect,
   onShift,
+  navPending,
   score,
   frogEaten,
   routine,
@@ -50,6 +52,8 @@ export function HeaderBar({
               type="button"
               aria-label="Previous day"
               onClick={() => onShift(-1)}
+              disabled={navPending}
+              aria-busy={navPending}
               className={navButton}
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
@@ -75,6 +79,8 @@ export function HeaderBar({
               type="button"
               aria-label="Next day"
               onClick={() => onShift(1)}
+              disabled={navPending}
+              aria-busy={navPending}
               className={navButton}
             >
               <ChevronRight className="size-4" aria-hidden="true" />

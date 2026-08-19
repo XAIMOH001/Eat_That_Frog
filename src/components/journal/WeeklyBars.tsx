@@ -47,7 +47,7 @@ export function WeeklyBars({ series }: Props) {
             <li key={s.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 aria-hidden="true"
-                className="size-2.5 shrink-0 rounded-[2px]"
+                className="size-2.5 shrink-0 rounded-xs"
                 style={{ background: s.tone }}
               />
               {s.label}
@@ -72,7 +72,7 @@ export function WeeklyBars({ series }: Props) {
                 {/* 2px surface gap between stacked segments, rounded data-end on top. */}
                 {d.wasted > 0 ? (
                   <div
-                    className="w-full rounded-t-[4px]"
+                    className="w-full rounded-t-sm"
                     style={{
                       height: (d.wasted / peak) * PLOT_H,
                       background: SERIES[1]?.tone,

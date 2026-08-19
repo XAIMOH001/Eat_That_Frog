@@ -15,7 +15,12 @@ import { TaskQueue } from "./TaskQueue";
 import { PLAN_TOMORROW_CLOSE_HOUR, PLAN_TOMORROW_OPEN_HOUR, useJournal } from "@/hooks/use-journal";
 import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
 import { isRoutineEditable, routineStreak } from "@/lib/routine-lock";
-import { dateKey, prettyDate, shiftKey } from "@/lib/journal-types";
+import { dateKey, prettyDate, shiftKey, type JournalData } from "@/lib/journal-types";
+
+type JournalDashboardProps = {
+  selected: string;
+  initialData: JournalData;
+};
 
 const TABS = [
   { id: "journal", label: "Journal", icon: LayoutGrid },
@@ -24,15 +29,8 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-/**
- * Exactly one dialog at a time. Both save and restore document.body.style.overflow on open and
- * close, so two open at once can restore "hidden" last and leave the page unscrollable with
- * nothing on screen to dismiss.
- */
 type DialogId = "clear" | "routine";
 
-// Wrap into the 24h day first: the close hour is expressed as 24, and formatting that
-// directly yields "12pm" — the label would say the planning window shuts at noon.
 const fmtHour = (h: number) => {
   const hr = h % 24;
   return `${hr % 12 || 12}${hr < 12 ? "am" : "pm"}`;
@@ -41,11 +39,9 @@ const PLAN_WINDOW_LABEL = `${fmtHour(PLAN_TOMORROW_OPEN_HOUR)}–${fmtHour(
   PLAN_TOMORROW_CLOSE_HOUR + 1,
 )}`;
 
-export function JournalDashboard() {
-  // Single clock read per render, threaded into everything that needs "now" so no module
-  // reaches for the ambient clock on its own.
+export function JournalDashboard({ selected, initialData }: JournalDashboardProps) {
   const now = new Date();
-  const journal = useJournal(now);
+  const journal = useJournal(now, { selected, initialData });
   const [tab, setTab] = useState<TabId>("journal");
   const [dialog, setDialog] = useState<DialogId | null>(null);
   const [, tick] = useState(0);
@@ -81,24 +77,15 @@ export function JournalDashboard() {
     () => dayMetrics(journal.data, journal.selected, journal.day),
     [journal.data, journal.selected, journal.day],
   );
-  // todayKey rather than `now` as the dep: routineStreak only reads the calendar day out of the
-  // clock, so a fresh Date on every render must not invalidate the memo.
+
   const streak = useMemo(
     () => routineStreak(journal.data, now),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [journal.data, todayKey],
   );
   const best = useMemo(() => bestStreak(journal.data), [journal.data]);
-
-  // Midnight can pass while the modal sits open, at which point the hook's own guard would
-  // reject the write and Confirm would be a silent no-op. Derived rather than synced through an
-  // effect: the 60s tick re-evaluates this, the modal unmounts itself, and the toggle falls
-  // through to showing the day as missed.
   const routineEditable = isRoutineEditable(journal.lockState);
-
-  // The frog card edits the A1 task by title, creating it on first keystroke. Kept here rather
-  // than in the hook so the card stays a dumb text/checkbox control until the full queue lands.
-  const { frog, addTask, updateTask, selected } = journal;
+  const { frog, addTask, updateTask } = journal;
   const setFrogTitle = (title: string) => {
     if (frog) updateTask(frog.id, { title });
     else addTask(title, "A1", selected);
@@ -113,17 +100,32 @@ export function JournalDashboard() {
   return (
     <main className="min-h-screen bg-surface px-4 py-6 sm:px-6 sm:py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        {journal.syncError ? (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-4 rounded-2xl bg-surface px-5 py-3.5 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+          >
+            <p className="text-sm text-[var(--cat-wasted)]">{journal.syncError}</p>
+            <button
+              type="button"
+              onClick={journal.dismissError}
+              className="shrink-0 rounded-full bg-surface px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
         <HeaderBar
           selected={journal.selected}
           onSelect={journal.setSelected}
           onShift={journal.goDay}
+          navPending={journal.navPending}
           score={metrics.disciplineScore}
           frogEaten={metrics.sFrog === 100}
           routine={journal.day.coreRoutineMaintained}
           routineState={journal.lockState}
           onRoutineRequest={(value) => {
-            // Only anchoring is gated. `value === false` is reachable solely in the reopened
-            // state, where nothing is locked and there is no commitment to confirm.
             if (value) setDialog("routine");
             else journal.setRoutine(false);
           }}
@@ -270,7 +272,7 @@ export function JournalDashboard() {
 
         <footer className="rounded-2xl bg-surface px-5 py-3.5 text-center shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
           <p className="text-xs text-muted-foreground">
-            Session only — entries live in memory and reset when you reload.
+            Changes save as you make them. Anything that fails to save is undone and reported above.
           </p>
         </footer>
       </div>
