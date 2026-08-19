@@ -9,7 +9,7 @@ export function DayOverview({ metrics, streak }: Props) {
   const rows = [
     { label: "Productive", value: `${metrics.productive}h`, color: "var(--cat-focus)" },
     { label: "Rest", value: `${metrics.rest}h`, color: "var(--cat-rest)" },
-    { label: "Wasted", value: `${metrics.wasted}h`, color: "var(--cat-wasted)" },
+    { label: "Leaks", value: `${metrics.wasted}h`, color: "var(--cat-wasted)" },
     { label: "Unlogged", value: `${24 - metrics.logged}h`, color: "var(--color-muted-foreground)" },
   ];
 

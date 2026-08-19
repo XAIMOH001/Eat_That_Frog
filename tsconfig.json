@@ -24,6 +24,7 @@
         "name": "next"
       }
     ],
+    "types": ["bun-types", "node", "react", "react-dom"],
     "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": true,

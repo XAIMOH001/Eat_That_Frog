@@ -49,7 +49,7 @@ export function dayMetrics(data: JournalData, key: string, day: DayEntry | undef
     if (!slot?.category) continue;
     counts[slot.category] += 1;
     // Only productive time counts toward the plan: an hour tagged to a task but logged as
-    // Wasted or Rest is not execution of that task.
+    // a time leak or Rest is not execution of that task.
     if (slot.taskId && (slot.category === "focus" || slot.category === "admin")) plannedHours += 1;
   }
 
@@ -71,7 +71,7 @@ export function dayMetrics(data: JournalData, key: string, day: DayEntry | undef
   const sFocus = working > 0 ? ((counts.focus + counts.admin * ADMIN_WEIGHT) / working) * 100 : 0;
 
   // S_Volume — how much of a full working day was put in. Measured on productive hours only:
-  // counting Wasted here would let a squandered day inflate the score, and Rest stays outside
+  // counting time leaks here would let a squandered day inflate the score, and Rest stays outside
   // every term so logging it can never cost anything.
   const volume = Math.min(productive / FULL_DAY_HOURS, 1);
 

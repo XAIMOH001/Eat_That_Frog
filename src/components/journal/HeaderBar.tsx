@@ -12,7 +12,7 @@ type Props = {
   frogEaten: boolean;
   routine: boolean;
   routineState: RoutineState;
-  onRoutine: (value: boolean) => void;
+  onRoutineRequest: (value: boolean) => void;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -30,7 +30,7 @@ export function HeaderBar({
   frogEaten,
   routine,
   routineState,
-  onRoutine,
+  onRoutineRequest,
 }: Props) {
   const isToday = selected === dateKey(new Date());
 
@@ -94,7 +94,7 @@ export function HeaderBar({
 
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
           <DisciplineGauge score={score} frogEaten={frogEaten} />
-          <RoutineToggle checked={routine} state={routineState} onChange={onRoutine} />
+          <RoutineToggle checked={routine} state={routineState} onChange={onRoutineRequest} />
         </div>
       </div>
     </header>

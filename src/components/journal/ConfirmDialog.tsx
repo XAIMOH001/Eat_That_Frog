@@ -1,13 +1,15 @@
 import { useEffect, useId, useRef } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
+
+type Tone = "danger" | "affirmative";
 
 type Props = {
   open: boolean;
   title: string;
-  /** What will be lost, named specifically. Generic "are you sure" copy teaches nothing. */
   body: React.ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
+  tone?: Tone;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -15,17 +17,35 @@ type Props = {
 const FOCUSABLE =
   'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-/**
- * A modal confirmation in the app's own idiom. Native <dialog> would bring the focus trap and
- * backdrop for free, but it paints a UA backdrop and default chrome that fight the Soft UI
- * surface, so the behaviour is implemented here instead and the styling stays ours.
- */
+const BUTTON =
+  "rounded-full bg-surface px-5 py-2.5 text-sm font-semibold transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
+
+const RAISED =
+  "shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]";
+
+const TONES = {
+  danger: {
+    role: "alertdialog",
+    Icon: AlertTriangle,
+    accent: "text-danger",
+    cancel: `text-muted-foreground ${RAISED}`,
+  },
+  affirmative: {
+    role: "dialog",
+    Icon: ShieldCheck,
+    accent: "text-success",
+    cancel:
+      "text-muted-foreground shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] hover:shadow-[inset_2px_2px_4px_#a3b1c6,inset_-2px_-2px_4px_#ffffff] active:shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]",
+  },
+} as const;
+
 export function ConfirmDialog({
   open,
   title,
   body,
   confirmLabel,
   cancelLabel = "Cancel",
+  tone = "danger",
   onConfirm,
   onCancel,
 }: Props) {
@@ -34,19 +54,23 @@ export function ConfirmDialog({
   const restoreTo = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const bodyId = useId();
+  const { role, Icon, accent, cancel } = TONES[tone];
+
+  const cancelRef = useRef(onCancel);
+  useEffect(() => {
+    cancelRef.current = onCancel;
+  }, [onCancel]);
 
   useEffect(() => {
     if (!open) return;
 
-    // Remember what had focus so it can be handed back on close — losing focus to <body>
-    // strands keyboard and screen-reader users wherever the DOM happens to start.
     restoreTo.current = document.activeElement as HTMLElement | null;
     confirmBtn.current?.focus();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onCancel();
+        cancelRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -57,7 +81,6 @@ export function ConfirmDialog({
       const last = items[items.length - 1];
       if (!first || !last) return;
 
-      // Cycle within the dialog rather than letting Tab escape to the page behind it.
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
@@ -76,17 +99,13 @@ export function ConfirmDialog({
       document.body.style.overflow = overflow;
       restoreTo.current?.focus();
     };
-  }, [open, onCancel]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center p-4"
-      // Test for "outside the panel" rather than target === currentTarget: the backdrop is a
-      // child element, so an identity check never matches a click that lands on it.
-      // The backdrop is a plain click target, not a button — it duplicates Cancel, and
-      // announcing it would put a nameless control in the dialog's tab order.
       onMouseDown={(e) => {
         if (!panel.current?.contains(e.target as Node)) onCancel();
       }}
@@ -95,7 +114,7 @@ export function ConfirmDialog({
 
       <div
         ref={panel}
-        role="alertdialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
@@ -103,7 +122,7 @@ export function ConfirmDialog({
       >
         <div className="flex items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]">
-            <AlertTriangle className="size-4 text-danger" aria-hidden="true" />
+            <Icon className={`size-4 ${accent}`} aria-hidden="true" />
           </span>
           <h2 id={titleId} className="text-base font-semibold tracking-tight text-foreground">
             {title}
@@ -115,18 +134,14 @@ export function ConfirmDialog({
         </div>
 
         <div className="mt-6 flex justify-end gap-2.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-          >
+          <button type="button" onClick={onCancel} className={`${BUTTON} ${cancel}`}>
             {cancelLabel}
           </button>
           <button
             ref={confirmBtn}
             type="button"
             onClick={onConfirm}
-            className="rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-danger shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            className={`${BUTTON} ${accent} ${RAISED}`}
           >
             {confirmLabel}
           </button>

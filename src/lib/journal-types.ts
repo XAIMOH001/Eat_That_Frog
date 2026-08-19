@@ -75,8 +75,8 @@ export const CATEGORIES: {
   { id: "rest", label: "Rest", short: "Rest", colorVar: "var(--cat-rest)", productive: false },
   {
     id: "wasted",
-    label: "Unproductive",
-    short: "Wasted",
+    label: "Time Leaks",
+    short: "Leaks",
     colorVar: "var(--cat-wasted)",
     productive: false,
   },

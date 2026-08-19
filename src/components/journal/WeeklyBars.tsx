@@ -3,15 +3,9 @@ import type { DayBar } from "@/lib/journal-metrics";
 
 type Props = { series: DayBar[] };
 
-/**
- * Two series only, and the pair is validated for CVD separation against the #e0e5ec
- * surface (ΔE 23.8 protan, 24.5 normal). Rest is deliberately not a third stack segment:
- * the question this chart answers is productive-versus-wasted, and adding a neutral third
- * band would push the palette back under the separation floor.
- */
 const SERIES = [
   { key: "productive" as const, label: "Productive", tone: "var(--cat-focus)" },
-  { key: "wasted" as const, label: "Wasted", tone: "var(--cat-wasted)" },
+  { key: "wasted" as const, label: "Leaks", tone: "var(--cat-wasted)" },
 ];
 
 const PLOT_H = 132;
@@ -36,7 +30,7 @@ export function WeeklyBars({ series }: Props) {
   return (
     <section
       className="rounded-3xl bg-surface p-6 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
-      aria-label="Productive versus wasted hours, last 7 days"
+      aria-label="Productive hours versus time leaks, last 7 days"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -73,7 +67,7 @@ export function WeeklyBars({ series }: Props) {
               <div
                 className="flex w-full max-w-9 flex-col justify-end rounded-lg bg-surface shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
                 style={{ height: PLOT_H }}
-                title={`${fullDate(d.key)} — ${d.productive}h productive, ${d.wasted}h wasted`}
+                title={`${fullDate(d.key)} — ${d.productive}h productive, ${d.wasted}h leaked`}
               >
                 {/* 2px surface gap between stacked segments, rounded data-end on top. */}
                 {d.wasted > 0 ? (
@@ -109,15 +103,14 @@ export function WeeklyBars({ series }: Props) {
         Scale 0–{peak}h
       </p>
 
-      {/* Table equivalent — the chart itself is aria-hidden, so this is the accessible view. */}
       <div className="sr-only">
         <table>
-          <caption>Productive and wasted hours per day, last 7 days</caption>
+          <caption>Productive hours and time leaks per day, last 7 days</caption>
           <thead>
             <tr>
               <th scope="col">Day</th>
               <th scope="col">Productive hours</th>
-              <th scope="col">Wasted hours</th>
+              <th scope="col">Time leaks (hours)</th>
             </tr>
           </thead>
           <tbody>
