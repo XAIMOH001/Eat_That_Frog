@@ -11,7 +11,6 @@ type Props = {
   hour: number;
   entry: HourEntry | undefined;
   isNow: boolean;
-  /** Today's planned tasks, for the swiss-cheese tag. Empty hides the control entirely. */
   tasks: PlannedTask[];
   onNote: (value: string) => void;
   onCategory: (value: CategoryId | null) => void;
@@ -59,9 +58,6 @@ export function HourRow({ hour, entry, isNow, tasks, onNote, onCategory, onTask 
           className="min-w-0 flex-1 rounded-2xl bg-surface px-4 py-2.5 text-sm text-foreground shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-accent"
         />
 
-        {/* Only offered once something is planned, so an unplanned day keeps the original row.
-            A native select rather than a custom combobox: keyboard and screen-reader behaviour
-            come free, and it collapses to the priority code when space is tight. */}
         {tasks.length > 0 ? (
           <select
             value={taskId ?? ""}

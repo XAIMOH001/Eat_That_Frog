@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Flame, Hourglass, Target, TrendingDown, Trophy } from "lucide-react";
+import {
+  Flame,
+  Hourglass,
+  RotateCcw,
+  ShieldCheck,
+  Target,
+  TrendingDown,
+  Trophy,
+} from "lucide-react";
 import { CategoryDonut } from "./CategoryDonut";
 import { FrogRateCard } from "./FrogRateCard";
 import { HabitHeatmap } from "./HabitHeatmap";
@@ -14,10 +22,12 @@ import {
   type HeatCell,
 } from "@/lib/journal-metrics";
 import { shiftKey, type JournalData } from "@/lib/journal-types";
+import type { CommitmentCard } from "@/lib/commitment-types";
 
 type Props = {
   data: JournalData;
   metrics: DayMetrics;
+  commitment: CommitmentCard | null;
   selected: string;
   todayKey: string;
   streak: number;
@@ -32,7 +42,15 @@ const RANGES = [
 
 type RangeId = (typeof RANGES)[number]["id"];
 
-export function AnalyticsPanel({ data, metrics, selected, todayKey, streak, best }: Props) {
+export function AnalyticsPanel({
+  data,
+  metrics,
+  selected,
+  todayKey,
+  streak,
+  best,
+  commitment,
+}: Props) {
   const [range, setRange] = useState<RangeId>("1");
   const active = RANGES.find((r) => r.id === range) ?? RANGES[0];
 
@@ -84,6 +102,41 @@ export function AnalyticsPanel({ data, metrics, selected, todayKey, streak, best
         />
       </div>
 
+      {commitment ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={Flame}
+            label="Commitment Streak"
+            value={`${commitment.streak} ${commitment.streak === 1 ? "day" : "days"}`}
+            hint="Consecutive days kept"
+            tone="success"
+          />
+          <StatCard
+            icon={Trophy}
+            label="Best Commitment Streak"
+            value={`${commitment.bestStreak} ${commitment.bestStreak === 1 ? "day" : "days"}`}
+            hint="Kept across every commitment"
+          />
+          <StatCard
+            icon={ShieldCheck}
+            label="Commitment Rate"
+            value={commitment.ratePct === null ? "—" : `${commitment.ratePct}%`}
+            hint={
+              commitment.rate30Pct === null
+                ? "Not enough days yet"
+                : `${commitment.rate30Pct}% over 30 days`
+            }
+            tone="primary"
+          />
+          <StatCard
+            icon={RotateCcw}
+            label="Recoveries"
+            value={`${commitment.recoveries}`}
+            hint="Comebacks after a break"
+          />
+        </div>
+      ) : null}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <FrogRateCard thisWeek={thisWeek} lastWeek={lastWeek} />
         <WeeklyBars series={series} />
@@ -103,7 +156,6 @@ export function AnalyticsPanel({ data, metrics, selected, todayKey, streak, best
             </h2>
           </div>
 
-          {/* Filters sit in one row above the chart they drive. */}
           <div
             role="group"
             aria-label="Time distribution range"

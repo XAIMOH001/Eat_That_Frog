@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { LayoutGrid, PieChart, Trash2 } from "lucide-react";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CoreRoutineModal } from "./CoreRoutineModal";
 import { DailyQuoteCard } from "./DailyQuoteCard";
+import { CommitmentCard } from "./CommitmentCard";
+import { ReauthDialog } from "./ReauthDialog";
 import { DayOverview } from "./DayOverview";
 import { verdict } from "./DisciplineGauge";
 import { FrogCard } from "./FrogCard";
@@ -13,13 +16,25 @@ import { HeaderBar } from "./HeaderBar";
 import { HourGrid } from "./HourGrid";
 import { TaskQueue } from "./TaskQueue";
 import { PLAN_TOMORROW_CLOSE_HOUR, PLAN_TOMORROW_OPEN_HOUR, useJournal } from "@/hooks/use-journal";
+import { useCommitment } from "@/hooks/use-commitment";
+import type { CommitmentCard as CommitmentCardData } from "@/lib/commitment-types";
 import { bestStreak, dayMetrics } from "@/lib/journal-metrics";
+import { ROUTES, journalHref } from "@/lib/routes";
 import { isRoutineEditable, routineStreak } from "@/lib/routine-lock";
-import { dateKey, prettyDate, shiftKey, type JournalData } from "@/lib/journal-types";
+import {
+  dateKey,
+  prettyDate,
+  shiftKey,
+  type AccountIdentity,
+  type JournalData,
+} from "@/lib/journal-types";
 
 type JournalDashboardProps = {
   selected: string;
   initialData: JournalData;
+  commitment: CommitmentCardData | null;
+  user: AccountIdentity;
+  reauthFresh: boolean;
 };
 
 const TABS = [
@@ -29,7 +44,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-type DialogId = "clear" | "routine";
+type DialogId = "clear" | "reauth" | "routine";
 
 const fmtHour = (h: number) => {
   const hr = h % 24;
@@ -39,9 +54,20 @@ const PLAN_WINDOW_LABEL = `${fmtHour(PLAN_TOMORROW_OPEN_HOUR)}–${fmtHour(
   PLAN_TOMORROW_CLOSE_HOUR + 1,
 )}`;
 
-export function JournalDashboard({ selected, initialData }: JournalDashboardProps) {
+export function JournalDashboard({
+  selected,
+  initialData,
+  commitment,
+  user,
+  reauthFresh,
+}: JournalDashboardProps) {
   const now = new Date();
-  const journal = useJournal(now, { selected, initialData });
+  const journal = useJournal(now, {
+    selected,
+    initialData,
+    onNeedsReauth: () => setDialog("reauth"),
+  });
+  const { card: commitmentCard, checkIn } = useCommitment(commitment, journal.persist);
   const [tab, setTab] = useState<TabId>("journal");
   const [dialog, setDialog] = useState<DialogId | null>(null);
   const [, tick] = useState(0);
@@ -105,14 +131,23 @@ export function JournalDashboard({ selected, initialData }: JournalDashboardProp
             role="alert"
             className="flex items-center justify-between gap-4 rounded-2xl bg-surface px-5 py-3.5 shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
           >
-            <p className="text-sm text-[var(--cat-wasted)]">{journal.syncError}</p>
-            <button
-              type="button"
-              onClick={journal.dismissError}
-              className="shrink-0 rounded-full bg-surface px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-            >
-              Dismiss
-            </button>
+            <p className="text-sm text-[var(--cat-wasted)]">{journal.syncError.message}</p>
+            {journal.syncError.sessionEnded ? (
+              <Link
+                href={`${ROUTES.signIn}?next=${encodeURIComponent(journalHref(journal.selected))}`}
+                className="shrink-0 rounded-full bg-surface px-4 py-1.5 text-xs font-semibold text-primary shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              >
+                Sign in again
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={journal.dismissError}
+                className="shrink-0 rounded-full bg-surface px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] transition-shadow duration-200 ease-out hover:shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] active:shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              >
+                Dismiss
+              </button>
+            )}
           </div>
         ) : null}
 
@@ -129,6 +164,8 @@ export function JournalDashboard({ selected, initialData }: JournalDashboardProp
             if (value) setDialog("routine");
             else journal.setRoutine(false);
           }}
+          onBeforeSignOut={journal.flushPending}
+          user={user}
         />
 
         <DailyQuoteCard key={journal.selected} dateKey={journal.selected} />
@@ -178,7 +215,8 @@ export function JournalDashboard({ selected, initialData }: JournalDashboardProp
             type="button"
             aria-disabled={loggedHours === 0}
             onClick={() => {
-              if (loggedHours > 0) setDialog("clear");
+              if (loggedHours === 0) return;
+              setDialog(reauthFresh ? "clear" : "reauth");
             }}
             className={`flex items-center justify-center gap-2 rounded-full bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-shadow duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
               loggedHours === 0
@@ -221,6 +259,7 @@ export function JournalDashboard({ selected, initialData }: JournalDashboardProp
                   onRemove={journal.removeTask}
                 />
                 <DayOverview metrics={metrics} streak={streak} />
+                <CommitmentCard card={commitmentCard} now={now} onCheckIn={checkIn} />
               </div>
             </div>
           ) : (
@@ -231,9 +270,17 @@ export function JournalDashboard({ selected, initialData }: JournalDashboardProp
               todayKey={todayKey}
               streak={streak}
               best={best}
+              commitment={commitmentCard}
             />
           )}
         </div>
+
+        <ReauthDialog
+          open={dialog === "reauth"}
+          reason="Clearing an hour log cannot be undone, so confirm your password first."
+          onVerified={() => setDialog("clear")}
+          onCancel={closeDialog}
+        />
 
         <ConfirmDialog
           open={dialog === "clear"}

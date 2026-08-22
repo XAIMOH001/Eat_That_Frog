@@ -9,12 +9,12 @@
     "lint": "eslint .",
     "test": "bun test",
     "format": "prettier --write .",
-    "db:pull": "drizzle-kit pull",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "better-auth": "^1.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "geist": "^1.7.2",
@@ -23,6 +23,7 @@
     "postgres": "^3.4.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

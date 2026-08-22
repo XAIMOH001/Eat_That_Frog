@@ -1,56 +1,77 @@
 "use server";
 
-import { db } from "@/db";
-import { dailyRecords, hourlyLogs, plannedTasks } from "@/db/schema";
-import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { unstable_rethrow } from "next/navigation";
+
+import { db, type Executor } from "@/db";
+import {
+  commitmentCheckIns,
+  dailyRecords,
+  hourlyLogs,
+  plannedTasks,
+  privateCommitments,
+} from "@/db/schema";
+import { and, desc, eq } from "drizzle-orm";
 import {
   CATEGORIES,
   TASK_PRIORITIES,
+  dateKey,
   emptyDay,
-  shiftKey,
   type CategoryId,
   type HourEntry,
 } from "@/lib/journal-types";
 import { isRoutineEditable, routineState } from "@/lib/routine-lock";
+import { canCheckIn, commitmentState } from "@/lib/commitment-lock";
+import {
+  BATTLE_CATEGORIES,
+  CUSTOM_CATEGORY_ID,
+  MAX_COMMITMENT_LABEL,
+} from "@/lib/commitment-categories";
+import { sealBattle } from "@/lib/commitment-secret";
+import { getCommitmentCard } from "@/lib/dal/commitment";
+import type { CommitmentCard } from "@/lib/commitment-types";
+import { currentSession, currentUserId, type UserId } from "@/lib/dal/session";
+import { hasFreshReauth } from "@/lib/dal/reauth";
 
-/* ------------------------------------------------------------------ result --- */
-
-/**
- * Mutations return a result rather than throwing, so the optimistic client can tell a
- * failure from a success and roll back. `error` is a short stable code, never a driver
- * message: a thrown error is redacted by Next in production, but a returned string is not.
- */
 export type ActionResult<T> =
-  { ok: true; data: T } | { ok: false; error: "invalid_input" | "not_allowed" | "db_error" };
+  | { ok: true; data: T }
+  | {
+      ok: false;
+      error: "invalid_input" | "not_allowed" | "needs_reauth" | "unauthenticated" | "db_error";
+    };
 
 class InvalidInput extends Error {}
 class NotAllowed extends Error {}
+class Unauthenticated extends Error {}
+class NeedsReauth extends Error {}
 
 async function run<T>(what: string, fn: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     return { ok: true, data: await fn() };
   } catch (error) {
-    // The real error stays on the server; the client gets a code.
+    // Must stay first in the catch, or redirect() is swallowed into db_error.
+    unstable_rethrow(error);
     console.error(`[action] ${what} failed:`, error);
     if (error instanceof InvalidInput) return { ok: false, error: "invalid_input" };
     if (error instanceof NotAllowed) return { ok: false, error: "not_allowed" };
+    if (error instanceof NeedsReauth) return { ok: false, error: "needs_reauth" };
+    if (error instanceof Unauthenticated) return { ok: false, error: "unauthenticated" };
     return { ok: false, error: "db_error" };
   }
 }
 
-/* ------------------------------------------------------------------ guards --- */
+async function requireUser(): Promise<UserId> {
+  const userId = await currentUserId();
+  if (!userId) throw new Unauthenticated("No authenticated user.");
+  return userId;
+}
 
-/**
- * OWNERSHIP SEAM — THIS PROVIDES NO SECURITY TODAY.
- *
- * Every Server Action below is a public, unauthenticated HTTP endpoint: anyone who can
- * reach the origin can call it. This app has no auth layer and no user column, so this
- * function returns a constant and checks nothing. It exists solely so that wiring real
- * authentication later is a change to one function plus an ownership predicate, rather
- * than an edit to every action. Do not mistake its presence for a protected boundary.
- */
-async function requireUser(): Promise<string> {
-  return "local";
+async function requireFreshUser(): Promise<UserId> {
+  const session = await currentSession();
+  if (!session) throw new Unauthenticated("No authenticated user.");
+  if (!(await hasFreshReauth(session.userId, session.sessionId))) {
+    throw new NeedsReauth("Re-authentication required.");
+  }
+  return session.userId;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,7 +79,6 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CATEGORY_IDS = new Set<string>(CATEGORIES.map((c) => c.id));
 const PRIORITY_IDS = new Set<string>(TASK_PRIORITIES.map((p) => p.id));
 
-/** Length caps. Nothing else bounds these — the columns are bare `text`. */
 const MAX_TITLE = 200;
 const MAX_NOTE = 2000;
 const MAX_TASK_REF = 64;
@@ -92,7 +112,6 @@ function assertPriority(value: string): string {
   return value;
 }
 
-/** Type-checks before any string method runs — `data` is untyped at runtime. */
 function assertEstimate(value: number): number {
   if (!Number.isInteger(value) || value < 0 || value > 24) {
     throw new InvalidInput("Estimated hours must be an integer 0–24.");
@@ -106,37 +125,32 @@ function assertText(value: unknown, max: number, label: string): string {
   return value;
 }
 
-/* ------------------------------------------------------------ daily records --- */
-
-/** Read-only. Returns null rather than creating, so a GET never writes. */
-export async function getRecord(dateString: string) {
-  await requireUser();
+async function getOwnedRecord(userId: UserId, dateString: string) {
   assertDate(dateString);
 
-  const [record] = await db.select().from(dailyRecords).where(eq(dailyRecords.date, dateString));
+  const [record] = await db
+    .select()
+    .from(dailyRecords)
+    .where(and(eq(dailyRecords.userId, userId), eq(dailyRecords.date, dateString)));
   return record ?? null;
 }
 
-/**
- * Insert-first so concurrent first-writes for the same day cannot both pass a "does it
- * exist" check and collide on daily_records.date's UNIQUE constraint. A transaction would
- * not help here at READ COMMITTED — the conflict clause is what makes this safe.
- */
-type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-async function getOrCreateRecord(dateString: string, tx: Executor = db) {
+async function getOrCreateRecord(userId: UserId, dateString: string, tx: Executor = db) {
   assertDate(dateString);
 
   const [inserted] = await tx
     .insert(dailyRecords)
-    .values({ date: dateString })
-    .onConflictDoNothing({ target: dailyRecords.date })
+    .values({ userId, date: dateString })
+    .onConflictDoNothing({ target: [dailyRecords.userId, dailyRecords.date] })
     .returning();
 
   if (inserted) return inserted;
 
-  // Lost the race: the winner's row is committed by the time the conflict resolved.
-  const [existing] = await tx.select().from(dailyRecords).where(eq(dailyRecords.date, dateString));
+  // The user_id predicate is not optional: without it this re-select returns another user's record id.
+  const [existing] = await tx
+    .select()
+    .from(dailyRecords)
+    .where(and(eq(dailyRecords.userId, userId), eq(dailyRecords.date, dateString)));
 
   if (!existing) throw new Error(`Daily record for ${dateString} vanished after upsert.`);
   return existing;
@@ -147,7 +161,7 @@ export async function updateDailyRecordStatus(
   status: { coreRoutineMaintained: boolean; routineLockedAt: string | null },
 ): Promise<ActionResult<null>> {
   return run("updateDailyRecordStatus", async () => {
-    await requireUser();
+    const userId = await requireUser();
     assertDate(dateString);
 
     if (typeof status?.coreRoutineMaintained !== "boolean") {
@@ -158,11 +172,8 @@ export async function updateDailyRecordStatus(
       throw new InvalidInput("Invalid routineLockedAt timestamp.");
     }
 
-    const record = await getOrCreateRecord(dateString);
+    const record = await getOrCreateRecord(userId, dateString);
 
-    // The 18-hour lockout is a data-integrity rule, not a UI affordance: without this the
-    // toggle can be forged on any past day and an arbitrary streak fabricated. Server-local
-    // time is used, matching how page.tsx derives today.
     const current = {
       ...emptyDay(),
       coreRoutineMaintained: record.coreRoutineMaintained,
@@ -178,15 +189,12 @@ export async function updateDailyRecordStatus(
         coreRoutineMaintained: status.coreRoutineMaintained,
         routineLockedAt: lockedAt === null ? null : new Date(lockedAt),
       })
-      .where(eq(dailyRecords.id, record.id));
+      .where(and(eq(dailyRecords.id, record.id), eq(dailyRecords.userId, userId)));
 
     return null;
   });
 }
 
-/* ------------------------------------------------------------ planned tasks --- */
-
-/** Keyed on the task's target date: the queue can plan tomorrow from today's view. */
 export async function addPlannedTask(
   targetDate: string,
   priority: string,
@@ -194,7 +202,7 @@ export async function addPlannedTask(
   estimatedHours = 1,
 ): Promise<ActionResult<{ id: string }>> {
   return run("addPlannedTask", async () => {
-    await requireUser();
+    const userId = await requireUser();
     assertDate(targetDate);
     assertPriority(priority);
     assertEstimate(estimatedHours);
@@ -202,14 +210,13 @@ export async function addPlannedTask(
     const trimmed = assertText(title, MAX_TITLE, "title").trim();
     if (!trimmed) throw new InvalidInput("Task title cannot be empty.");
 
-    // Atomic: a crash between creating the day and inserting its task would otherwise
-    // leave an empty daily_records row behind.
     return await db.transaction(async (tx) => {
-      const record = await getOrCreateRecord(targetDate, tx);
+      const record = await getOrCreateRecord(userId, targetDate, tx);
 
       const [newTask] = await tx
         .insert(plannedTasks)
         .values({
+          userId,
           dailyRecordId: record.id,
           priority,
           title: trimmed,
@@ -229,7 +236,7 @@ export async function updatePlannedTask(
   patch: { title?: string; priority?: string; completed?: boolean; estimatedHours?: number },
 ): Promise<ActionResult<null>> {
   return run("updatePlannedTask", async () => {
-    await requireUser();
+    const userId = await requireUser();
     assertUuid(taskId, "task id");
 
     const set: Partial<{
@@ -256,45 +263,47 @@ export async function updatePlannedTask(
 
     if (Object.keys(set).length === 0) return null;
 
-    await db.update(plannedTasks).set(set).where(eq(plannedTasks.id, taskId));
+    const updated = await db
+      .update(plannedTasks)
+      .set(set)
+      .where(and(eq(plannedTasks.id, taskId), eq(plannedTasks.userId, userId)))
+      .returning({ id: plannedTasks.id });
+
+    if (updated.length === 0) throw new NotAllowed("No such task.");
     return null;
   });
 }
 
 export async function deletePlannedTask(taskId: string): Promise<ActionResult<null>> {
   return run("deletePlannedTask", async () => {
-    await requireUser();
+    const userId = await requireUser();
     assertUuid(taskId, "task id");
 
-    // hourly_logs.task_id deliberately has no foreign key, so the untagging is ours to do.
-    // Both halves in one transaction: the client used to orchestrate this as N+1 separate
-    // round-trips with no ordering guarantee, which left dangling tags on partial failure.
     await db.transaction(async (tx) => {
-      await tx.update(hourlyLogs).set({ taskId: null }).where(eq(hourlyLogs.taskId, taskId));
-      await tx.delete(plannedTasks).where(eq(plannedTasks.id, taskId));
+      await tx
+        .update(hourlyLogs)
+        .set({ taskId: null })
+        .where(and(eq(hourlyLogs.userId, userId), eq(hourlyLogs.taskId, taskId)));
+
+      const deleted = await tx
+        .delete(plannedTasks)
+        .where(and(eq(plannedTasks.id, taskId), eq(plannedTasks.userId, userId)))
+        .returning({ id: plannedTasks.id });
+
+      if (deleted.length === 0) throw new NotAllowed("No such task.");
     });
 
     return null;
   });
 }
 
-/* -------------------------------------------------------------- hourly logs --- */
-
-/**
- * Insert or update one hour. `data` may be partial — only the keys present are written on
- * conflict, so persisting a note cannot clobber the category beside it.
- *
- * An hour that ends up entirely empty is deleted rather than stored: the habit heatmap
- * treats "has any hour row" as "this day was logged", and a note typed then deleted should
- * not light a day up forever.
- */
 export async function upsertHourlyLog(
   dateString: string,
   hourSlot: number,
   data: Partial<HourEntry>,
 ): Promise<ActionResult<null>> {
   return run("upsertHourlyLog", async () => {
-    await requireUser();
+    const userId = await requireUser();
     assertDate(dateString);
     assertHourSlot(hourSlot);
 
@@ -308,16 +317,30 @@ export async function upsertHourlyLog(
     const category = data.category ?? null;
     const taskId = data.taskId ?? null;
 
+    if (taskId !== null && UUID.test(taskId)) {
+      const [owned] = await db
+        .select({ id: plannedTasks.id })
+        .from(plannedTasks)
+        .where(and(eq(plannedTasks.id, taskId), eq(plannedTasks.userId, userId)));
+      if (!owned) throw new NotAllowed("Unknown task.");
+    }
+
     const isFullSlot =
       data.note !== undefined && data.category !== undefined && data.taskId !== undefined;
     const isEmpty = isFullSlot && note.trim() === "" && category === null && taskId === null;
 
-    const record = await getOrCreateRecord(dateString);
+    const record = await getOrCreateRecord(userId, dateString);
 
     if (isEmpty) {
       await db
         .delete(hourlyLogs)
-        .where(and(eq(hourlyLogs.dailyRecordId, record.id), eq(hourlyLogs.hourSlot, hourSlot)));
+        .where(
+          and(
+            eq(hourlyLogs.userId, userId),
+            eq(hourlyLogs.dailyRecordId, record.id),
+            eq(hourlyLogs.hourSlot, hourSlot),
+          ),
+        );
       return null;
     }
 
@@ -326,13 +349,16 @@ export async function upsertHourlyLog(
     if (data.category !== undefined) set.category = category;
     if (data.taskId !== undefined) set.taskId = taskId;
 
-    // Drizzle emits an invalid `DO UPDATE SET` for an empty set object.
     if (Object.keys(set).length === 0) return null;
 
     await db
       .insert(hourlyLogs)
-      .values({ dailyRecordId: record.id, hourSlot, note, category, taskId })
-      .onConflictDoUpdate({ target: [hourlyLogs.dailyRecordId, hourlyLogs.hourSlot], set });
+      .values({ userId, dailyRecordId: record.id, hourSlot, note, category, taskId })
+      .onConflictDoUpdate({
+        target: [hourlyLogs.dailyRecordId, hourlyLogs.hourSlot],
+        set,
+        setWhere: eq(hourlyLogs.userId, userId),
+      });
 
     return null;
   });
@@ -340,66 +366,117 @@ export async function upsertHourlyLog(
 
 export async function clearDayLogs(dateString: string): Promise<ActionResult<null>> {
   return run("clearDayLogs", async () => {
-    await requireUser();
+    const userId = await requireFreshUser();
     assertDate(dateString);
 
-    const record = await getRecord(dateString);
+    const record = await getOwnedRecord(userId, dateString);
     if (!record) return null;
 
-    await db.delete(hourlyLogs).where(eq(hourlyLogs.dailyRecordId, record.id));
+    await db
+      .delete(hourlyLogs)
+      .where(and(eq(hourlyLogs.userId, userId), eq(hourlyLogs.dailyRecordId, record.id)));
     return null;
   });
 }
 
-/* ------------------------------------------------------------------ window --- */
+const BATTLE_IDS = new Set<string>(BATTLE_CATEGORIES.map((b) => b.id));
 
-export type JournalWindow = {
-  records: (typeof dailyRecords.$inferSelect)[];
-  logs: (typeof hourlyLogs.$inferSelect)[];
-  tasks: (typeof plannedTasks.$inferSelect)[];
-};
+function assertBattleCategory(value: string): string {
+  if (typeof value !== "string" || !BATTLE_IDS.has(value)) {
+    throw new InvalidInput("Unknown commitment category.");
+  }
+  return value;
+}
 
-/**
- * Everything needed to draw the analytics panels: a trailing window ending at the selected
- * day, plus one ending at today. Two ranges rather than one min..max span because the date
- * picker accepts anything from 2000 to 2100 — a single span between a distant past date and
- * today would be unbounded, while the streak counters still need the days around today.
- */
-export async function getJournalWindow(
-  selectedDate: string,
-  todayDate: string,
-  days = 90,
-): Promise<JournalWindow> {
-  await requireUser();
-  assertDate(selectedDate);
-  assertDate(todayDate);
-  if (!Number.isInteger(days)) throw new InvalidInput("days must be an integer.");
+export async function startCommitment(
+  category: string,
+  customLabel: string | null,
+): Promise<ActionResult<null>> {
+  return run("startCommitment", async () => {
+    const userId = await requireUser();
+    assertBattleCategory(category);
 
-  const span = Math.max(1, Math.min(days, 366));
+    let label: string | null = null;
+    if (category === CUSTOM_CATEGORY_ID) {
+      if (customLabel !== null) {
+        const trimmed = assertText(customLabel, MAX_COMMITMENT_LABEL, "label").trim();
+        label = trimmed === "" ? null : trimmed;
+      }
+    } else if (customLabel !== null) {
+      throw new InvalidInput("A label is only accepted for a custom commitment.");
+    }
 
-  const records = await db
-    .select()
-    .from(dailyRecords)
-    .where(
-      or(
-        and(
-          gte(dailyRecords.date, shiftKey(todayDate, -(span - 1))),
-          lte(dailyRecords.date, todayDate),
-        ),
-        and(
-          gte(dailyRecords.date, shiftKey(selectedDate, -(span - 1))),
-          lte(dailyRecords.date, selectedDate),
-        ),
-      ),
-    );
+    const [created] = await db
+      .insert(privateCommitments)
+      .values({
+        userId,
+        secret: sealBattle(userId, category, label),
+        startedOn: dateKey(new Date()),
+      })
+      .onConflictDoNothing()
+      .returning({ id: privateCommitments.id });
 
-  if (records.length === 0) return { records: [], logs: [], tasks: [] };
+    if (!created) throw new NotAllowed("A commitment is already live.");
+    return null;
+  });
+}
 
-  const ids = records.map((r) => r.id);
-  const [logs, tasks] = await Promise.all([
-    db.select().from(hourlyLogs).where(inArray(hourlyLogs.dailyRecordId, ids)),
-    db.select().from(plannedTasks).where(inArray(plannedTasks.dailyRecordId, ids)),
-  ]);
+// Zero-arity deliberately: no date or timestamp parameter means back-dating cannot be expressed.
+export async function checkInCommitment(): Promise<ActionResult<CommitmentCard>> {
+  return run("checkInCommitment", async () => {
+    const userId = await requireUser();
+    const now = new Date();
+    const todayKey = dateKey(now);
 
-  return { records, logs, tasks };
+    return await db.transaction(async (tx) => {
+      const [live] = await tx
+        .select({
+          id: privateCommitments.id,
+          status: privateCommitments.status,
+          startedOn: privateCommitments.startedOn,
+        })
+        .from(privateCommitments)
+        .where(and(eq(privateCommitments.userId, userId), eq(privateCommitments.status, "active")));
+
+      if (!live) throw new NotAllowed("No active commitment.");
+
+      const [last] = await tx
+        .select({
+          keptOn: commitmentCheckIns.keptOn,
+          checkedInAt: commitmentCheckIns.checkedInAt,
+        })
+        .from(commitmentCheckIns)
+        .where(
+          and(eq(commitmentCheckIns.userId, userId), eq(commitmentCheckIns.commitmentId, live.id)),
+        )
+        .orderBy(desc(commitmentCheckIns.keptOn))
+        .limit(1);
+
+      const state = commitmentState(
+        {
+          status: live.status === "paused" ? "paused" : "active",
+          startedOn: live.startedOn,
+          lastKeptOn: last?.keptOn ?? null,
+          lastCheckedInAt: last?.checkedInAt?.toISOString() ?? null,
+        },
+        todayKey,
+        now,
+      );
+      if (!canCheckIn(state)) throw new NotAllowed("Check-in is not open yet.");
+
+      const [row] = await tx
+        .insert(commitmentCheckIns)
+        .values({ userId, commitmentId: live.id, keptOn: todayKey })
+        .onConflictDoNothing({
+          target: [commitmentCheckIns.commitmentId, commitmentCheckIns.keptOn],
+        })
+        .returning({ id: commitmentCheckIns.id });
+
+      if (!row) throw new NotAllowed("Already checked in for today.");
+
+      const card = await getCommitmentCard(userId, now, tx);
+      if (!card) throw new Error("Commitment vanished mid-check-in.");
+      return card;
+    });
+  });
 }

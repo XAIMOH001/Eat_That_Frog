@@ -111,7 +111,6 @@ describe("hydrateJournal", () => {
         log({ hourSlot: 9, category: "focus", taskId: T1 }),
         log({ hourSlot: 10, category: "admin", taskId: T1 }),
         log({ dailyRecordId: R2, hourSlot: 11, category: "focus", taskId: T1 }),
-        // Rest and time leaks are not execution, however the hour was tagged.
         log({ hourSlot: 12, category: "rest", taskId: T1 }),
         log({ hourSlot: 13, category: "wasted", taskId: T1 }),
       ],

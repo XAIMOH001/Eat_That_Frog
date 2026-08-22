@@ -9,12 +9,6 @@ import {
   type TaskPriority,
 } from "./journal-types";
 
-/**
- * Row shapes derived from the schema, narrowed to the columns this transform reads. Picking
- * from `$inferSelect` keeps the narrowness a hand-written type would give while still failing
- * the build if a column is renamed or retyped. These are type-only and `schema.ts` imports no
- * database client, so nothing runtime crosses into this module.
- */
 export type RecordRow = Pick<
   typeof dailyRecords.$inferSelect,
   "id" | "date" | "coreRoutineMaintained" | "routineLockedAt"

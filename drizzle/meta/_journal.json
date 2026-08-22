@@ -22,6 +22,41 @@
       "when": 1787177239833,
       "tag": "0002_safe_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787341235832,
+      "tag": "0003_outgoing_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787341330327,
+      "tag": "0004_lying_mystique",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787341340020,
+      "tag": "0005_hot_iron_fist",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787356602364,
+      "tag": "0006_sloppy_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787361197778,
+      "tag": "0007_wooden_whizzer",
+      "breakpoints": true
     }
   ]
 }

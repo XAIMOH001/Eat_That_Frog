@@ -8,9 +8,6 @@ type Props = {
   tone?: "default" | "success" | "primary" | "warning";
 };
 
-// Tokens, not literals: these render text, so they must track the AA-corrected palette.
-// The pre-correction literals here (#00b894 at 2.00:1) were invisible to the Tailwind
-// class linter because they live in an inline style.
 const toneColor: Record<NonNullable<Props["tone"]>, string> = {
   default: "var(--color-foreground)",
   success: "var(--color-success)",

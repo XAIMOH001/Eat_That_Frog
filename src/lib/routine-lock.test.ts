@@ -8,12 +8,9 @@ import {
 } from "./routine-lock";
 import { dateKey, emptyDay, shiftKey, type DayEntry, type JournalData } from "./journal-types";
 
-// Dates are built with the local-time constructor because dateKey() reads local calendar
-// fields — using UTC here would drift the key by a day in most timezones.
 const AT = (h: number, min = 0) => new Date(2026, 7, 19, h, min, 0, 0);
 const TODAY = dateKey(AT(12));
 
-/** A day that was anchored at `h:min` local time on TODAY. */
 function anchored(h: number, min = 0): DayEntry {
   return { ...emptyDay(), coreRoutineMaintained: true, routineLockedAt: AT(h, min).toISOString() };
 }
@@ -59,8 +56,6 @@ describe("routineState", () => {
   });
 
   it("holds the lock right up to the 18-hour mark", () => {
-    // Anchored at 01:00, so the window elapses at 19:00 — inside the same calendar day, which
-    // is the only case where the full 18 hours actually bites.
     expect(routineState(anchored(1), TODAY, AT(18, 59)).kind).toBe("locked");
   });
 
@@ -70,8 +65,6 @@ describe("routineState", () => {
   });
 
   it("caps the window at the end of the calendar day", () => {
-    // 08:00 + 18h would be 02:00 tomorrow, but past days are read-only anyway, so the lock
-    // stays shut for the rest of today rather than bleeding into tomorrow.
     const state = routineState(anchored(8), TODAY, AT(23, 58));
     expect(state.kind).toBe("locked");
     if (state.kind === "locked") {
@@ -128,7 +121,6 @@ describe("routineStreak", () => {
   });
 
   it("does not zero a live streak just because today is unlogged", () => {
-    // The grace rule: today can still be saved, so it reads the run through yesterday.
     const days = { [shiftKey(TODAY, -1)]: held(), [shiftKey(TODAY, -2)]: held() };
     expect(routineStreak(journal(days), AT(12))).toBe(2);
   });
@@ -136,7 +128,6 @@ describe("routineStreak", () => {
   it("breaks on a missed past day", () => {
     const days = {
       [TODAY]: anchored(9),
-      // yesterday missing — the run stops here
       [shiftKey(TODAY, -2)]: held(),
       [shiftKey(TODAY, -3)]: held(),
     };

@@ -1,0 +1,1 @@
+ALTER TABLE "daily_records" DROP COLUMN "discipline_score";

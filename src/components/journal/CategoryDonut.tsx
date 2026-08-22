@@ -1,6 +1,5 @@
 import { CATEGORIES, type CategoryId } from "@/lib/journal-types";
 
-/** Counts rather than DayMetrics, so the same donut serves a day or a 30-day window. */
 type Props = { counts: Record<CategoryId, number> };
 
 export function CategoryDonut({ counts }: Props) {

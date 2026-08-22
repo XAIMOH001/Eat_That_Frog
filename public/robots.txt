@@ -1,14 +1,8 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# The journal is one person's private log and the auth endpoints are not content. Only the
+# public marketing surface is crawlable — which today is just `/`.
 User-agent: *
+Disallow: /journal
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /api/
 Allow: /
