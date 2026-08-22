@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LegalList, LegalPage, LegalSection, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalList, LegalMail, LegalPage, LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         <p>
           Your data stays until you delete it. Deleting your account deletes everything attached to
           it — journal, tasks, hourly logs, and commitment history — in the same operation. To
-          request deletion, contact <LegalTodo>[add a contact address]</LegalTodo>.
+          request deletion, contact <LegalMail />.
         </p>
       </LegalSection>
 

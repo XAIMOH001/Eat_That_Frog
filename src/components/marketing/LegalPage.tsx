@@ -56,6 +56,16 @@ export function LegalList({ items }: { items: readonly string[] }) {
   );
 }
 
-export function LegalTodo({ children }: { children: React.ReactNode }) {
-  return <strong className="font-semibold text-danger">{children}</strong>;
+// One address, exported so /terms and /privacy cannot drift apart.
+export const CONTACT_EMAIL = "xaimohchau@gmail.com";
+
+export function LegalMail() {
+  return (
+    <a
+      href={`mailto:${CONTACT_EMAIL}`}
+      className="font-medium text-foreground underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+    >
+      {CONTACT_EMAIL}
+    </a>
+  );
 }

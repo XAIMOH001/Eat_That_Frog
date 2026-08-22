@@ -6,6 +6,7 @@ import { FeatureSection } from "@/components/marketing/FeatureSection";
 import { Hero } from "@/components/marketing/Hero";
 import { BATTLE_EXAMPLES, FEATURES } from "@/components/marketing/features";
 import { getOptionalUser } from "@/lib/dal/session";
+import { OG_IMAGE } from "@/lib/og";
 import { journalHref } from "@/lib/routes";
 
 const TITLE = "Eat That Frog — Do the work that matters.";
@@ -21,9 +22,9 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: "/",
     type: "website",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "The Eat That Frog dashboard." }],
+    images: [OG_IMAGE],
   },
-  twitter: { card: "summary_large_image", images: ["/og.png"] },
+  twitter: { card: "summary_large_image", images: [OG_IMAGE.url] },
 };
 
 export default async function LandingPage({
