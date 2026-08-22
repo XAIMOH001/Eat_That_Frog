@@ -4,11 +4,12 @@ import { useState } from "react";
 import { LayoutGrid } from "lucide-react";
 
 const SRC = "/dashboard-preview.png";
-const WIDTH = 2400;
-const HEIGHT = 1500;
+// Already cropped to 8:5, so object-cover has nothing to trim.
+const WIDTH = 863;
+const HEIGHT = 539;
 
 const ALT =
-  "The Eat That Frog dashboard: the day's discipline score and core-routine switch, the frog for the day, and a 24-hour log with each hour tagged Focus, Admin, Rest or Time Leaks.";
+  "The Eat That Frog dashboard: the day's date and discipline score, the core-routine switch, a daily quote, the frog for the day, and stat cards for productive hours, time leaks and streaks.";
 
 export function DashboardPreview() {
   const [failed, setFailed] = useState(false);
