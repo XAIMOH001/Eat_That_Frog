@@ -11,7 +11,6 @@ export function FrogRateCard({ thisWeek, lastWeek }: Props) {
   const delta = hasBaseline ? thisWeek.pct - lastWeek.pct : 0;
   const dir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
 
-  // Direction carries an icon and a word, never colour alone.
   const trend = {
     up: { Icon: TrendingUp, tone: "var(--color-success)", word: "up" },
     down: { Icon: TrendingDown, tone: "var(--cat-wasted)", word: "down" },

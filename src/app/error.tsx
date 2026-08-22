@@ -14,7 +14,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           This page didn&apos;t load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong while rendering your journal.
+          Something went wrong while loading this page.
         </p>
         <button
           type="button"

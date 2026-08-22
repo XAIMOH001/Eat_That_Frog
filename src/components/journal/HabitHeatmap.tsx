@@ -10,17 +10,9 @@ type Props = {
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
-/**
- * Held versus missed is encoded by fill presence — a filled raised cell against an empty
- * sunken one — rather than by a green/red pair. That pair measured ΔE 4.6 for protanopia
- * against this surface, i.e. indistinguishable for red-blind readers; presence/absence has
- * no such failure mode, and it reads as neumorphic rather than as a chart bolted on.
- */
 export function HabitHeatmap({ cells, monthLabel, held, elapsed }: Props) {
   const cellClass = (c: HeatCell | null) => {
     if (!c) return "invisible";
-    // A faint inset ring, not opacity on the surface colour: an opacity-only cell is
-    // literally invisible against #e0e5ec and the grid reads as truncated.
     if (c.future) return "bg-surface shadow-[inset_0_0_0_1px_#cdd5e0]";
     if (c.held) return "bg-success shadow-[2px_2px_4px_#a3b1c6,-2px_-2px_4px_#ffffff]";
     return "bg-surface shadow-[inset_2px_2px_4px_#a3b1c6,inset_-2px_-2px_4px_#ffffff]";
@@ -55,8 +47,6 @@ export function HabitHeatmap({ cells, monthLabel, held, elapsed }: Props) {
       </div>
 
       <div className="mt-5" aria-hidden="true">
-        {/* Capped width: unconstrained, aspect-square cells in a full-width card render as
-            ~100px tiles. GitHub-scale cells are the point of a contribution grid. */}
         <div className="mx-auto grid max-w-[19rem] grid-cols-7 gap-1.5">
           {WEEKDAYS.map((d, i) => (
             <span

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recomputeActualHours } from "@/lib/journal-metrics";
+import { journalHref } from "@/lib/routes";
 import { isRoutineEditable, routineState } from "@/lib/routine-lock";
 import {
   a1Task,
@@ -25,27 +26,21 @@ import {
   type ActionResult,
 } from "@/app/actions";
 
-/** Advance planning is only meaningful once the day is essentially spent. */
 export const PLAN_TOMORROW_OPEN_HOUR = 20;
 export const PLAN_TOMORROW_CLOSE_HOUR = 23;
 
-/**
- * Note and title fields are controlled inputs firing on every keystroke. Without this each
- * would issue one Server Action per character typed.
- */
 const DEBOUNCE_MS = 600;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Optimistic ids ("t1") exist only until the insert round-trips; they are not in the DB. */
 function isPersisted(id: string): boolean {
   return UUID.test(id);
 }
 
 export type UseJournalOptions = {
-  /** Driven by the `?date=` search param, so the day is server-fetched and shareable. */
   selected: string;
   initialData: JournalData;
+  onNeedsReauth?: (() => void) | undefined;
 };
 
 let seq = 0;
@@ -53,8 +48,6 @@ function nextId(): string {
   seq += 1;
   return `t${seq}`;
 }
-
-/* ------------------------------------------------------- pure state helpers --- */
 
 type HourRef = { dayKey: string; hour: number };
 
@@ -91,10 +84,6 @@ function withTask(data: JournalData, id: string, task: PlannedTask | undefined) 
   return recomputeActualHours({ ...data, tasks });
 }
 
-/**
- * Rewrite every hour tagged with `from` to `to`. Returns the new data plus the exact hours
- * it touched, so the caller can re-persist them and reverse them precisely on rollback.
- */
 function retagHours(data: JournalData, from: string, to: string | null) {
   const days: Record<string, DayEntry> = {};
   const touched: HourRef[] = [];
@@ -114,7 +103,6 @@ function retagHours(data: JournalData, from: string, to: string | null) {
   return { data: { ...data, days }, touched };
 }
 
-/** Force a specific taskId onto an explicit list of hours. Used to reverse a retag. */
 function setTaskIdOn(data: JournalData, refs: HourRef[], taskId: string | null) {
   const days = { ...data.days };
   for (const { dayKey, hour } of refs) {
@@ -126,46 +114,37 @@ function setTaskIdOn(data: JournalData, refs: HourRef[], taskId: string | null) 
   return recomputeActualHours({ ...data, days });
 }
 
-/* -------------------------------------------------------------------- hook --- */
+export type SyncError = { message: string; sessionEnded: boolean };
 
-export function useJournal(now: Date, { selected, initialData }: UseJournalOptions) {
+export function useJournal(now: Date, { selected, initialData, onNeedsReauth }: UseJournalOptions) {
   const router = useRouter();
   const [navPending, startNav] = useTransition();
 
   const [data, setData] = useState<JournalData>(initialData);
-  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<SyncError | null>(null);
 
-  /**
-   * Mirrors `data`. Every mutation computes its next state from this ref and commit() writes
-   * it back synchronously, so a second edit in the same tick reads the first one's result.
-   * An effect-only sync would lag by a commit and let same-tick edits clobber each other in
-   * both state and the database; the effect below is only a backstop for server payloads.
-   */
   const stateRef = useRef(data);
+
+  const needsReauthRef = useRef(onNeedsReauth);
+  useEffect(() => {
+    needsReauthRef.current = onNeedsReauth;
+  }, [onNeedsReauth]);
 
   const commit = useCallback((next: JournalData) => {
     stateRef.current = next;
     setData(next);
   }, []);
 
-  // The server is authoritative on navigation. Every mutation is flushed before the route
-  // changes, so the freshly fetched window supersedes whatever is held locally.
   const [prevInitialData, setPrevInitialData] = useState(initialData);
   if (initialData !== prevInitialData) {
     setPrevInitialData(initialData);
     setData(initialData);
   }
 
-  // Backstop for state that did not come through commit() — the server payload above. Safe
-  // to lag by an effect here, because no user event can fire between that render and this
-  // flush, so no mutation can read a stale ref across a navigation.
   useEffect(() => {
     stateRef.current = data;
   }, [data]);
 
-  /* ----------------------------------------------------------- persistence --- */
-
-  /** Run a mutation, rolling the optimistic state back and surfacing it if it fails. */
   const persist = useCallback(
     (
       action: () => Promise<ActionResult<unknown>>,
@@ -177,22 +156,40 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
           if (result.ok) return;
           console.error(`[journal] ${what} rejected: ${result.error}`);
           rollback();
-          setSyncError(
-            result.error === "not_allowed"
-              ? `That change to ${what} isn't allowed any more, so it was undone.`
-              : `Couldn't save ${what}. Your change was undone.`,
-          );
+
+          if (result.error === "unauthenticated") {
+            setSyncError({
+              message: `Your session ended, so the change to ${what} was undone.`,
+              sessionEnded: true,
+            });
+            router.refresh();
+            return;
+          }
+
+          if (result.error === "needs_reauth") {
+            needsReauthRef.current?.();
+            return;
+          }
+
+          setSyncError({
+            message:
+              result.error === "not_allowed"
+                ? `That change to ${what} isn't allowed any more, so it was undone.`
+                : `Couldn't save ${what}. Your change was undone.`,
+            sessionEnded: false,
+          });
         },
         (error: unknown) => {
           console.error(`[journal] ${what} failed:`, error);
           rollback();
-          setSyncError(`Couldn't reach the server to save ${what}. Your change was undone.`);
+          setSyncError({
+            message: `Couldn't reach the server to save ${what}. Your change was undone.`,
+            sessionEnded: false,
+          });
         },
       ),
-    [],
+    [router],
   );
-
-  /* ------------------------------------------------------ debounced writes --- */
 
   const pending = useRef(
     new Map<string, { timer: ReturnType<typeof setTimeout>; run: () => Promise<void> }>(),
@@ -211,7 +208,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     }
   }, []);
 
-  /** Run every queued write and wait for it. Called before navigating so nothing is lost. */
   const flushPending = useCallback(async () => {
     const entries = [...pending.current.values()];
     cancelPending();
@@ -220,8 +216,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
 
   const queue = useCallback(
     (key: string, task: () => Promise<void>, debounce: boolean) => {
-      // Any write for this key supersedes a queued one, so a stale debounced value can never
-      // land after a newer immediate write.
       cancelPending(key);
 
       if (!debounce) {
@@ -238,8 +232,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     [cancelPending],
   );
 
-  // Flush on unmount and when the tab is hidden — a tab close inside the debounce window
-  // would otherwise drop the last keystrokes outright.
   useEffect(() => {
     const onHide = () => void flushPending();
     window.addEventListener("pagehide", onHide);
@@ -250,8 +242,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       void flushPending();
     };
   }, [flushPending]);
-
-  /* ------------------------------------------------------------ hour edits --- */
 
   const writeHour = useCallback(
     (hour: number, slot: HourEntry, previous: HourEntry | undefined, debounce: boolean) => {
@@ -270,7 +260,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     [selected, queue, persist, commit],
   );
 
-  /** Optimistically patch one hour, then persist the whole merged slot. */
   const patchHour = useCallback(
     (hour: number, patch: Partial<HourEntry>, debounce: boolean) => {
       const current = stateRef.current;
@@ -299,7 +288,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
   );
 
   const clearLog = useCallback(() => {
-    // Drop queued note writes first, or they would recreate rows moments after the delete.
     cancelPending();
 
     const current = stateRef.current;
@@ -312,8 +300,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       "the cleared day",
     );
   }, [cancelPending, selected, commit, persist]);
-
-  /* -------------------------------------------------------------- routine --- */
 
   const setRoutine = useCallback(
     (value: boolean) => {
@@ -336,9 +322,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     [selected, now, commit, persist],
   );
 
-  /* ---------------------------------------------------------------- tasks --- */
-
-  /** Guards the create-vs-update race on the frog input, whose onChange fires per keystroke. */
   const creating = useRef(new Set<string>());
 
   const addTask = useCallback(
@@ -346,8 +329,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       const trimmed = title.trim();
       if (!trimmed) return;
 
-      // Two keystrokes landing before the first insert resolves would otherwise create two
-      // A1 rows for the same day, and A1 is single-occupancy by convention.
       const slot = `${priority}:${targetDate}`;
       if (priority === "A1" && creating.current.has(slot)) return;
       creating.current.add(slot);
@@ -370,8 +351,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
           addPlannedTask(targetDate, priority, trimmed, estimatedHours).then((result) => {
             if (!result.ok) return result;
 
-            // Hours tagged while the task was still optimistic point at the temp id. Left
-            // alone they would persist as a task_id that matches nothing, forever.
             const realId = result.data.id;
             const swapped = withTask(withTask(stateRef.current, tempId, undefined), realId, {
               ...task,
@@ -415,7 +394,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       if (patch.estimatedHours !== undefined) wire.estimatedHours = patch.estimatedHours;
       if (Object.keys(wire).length === 0) return;
 
-      // Title comes from a per-keystroke input, so it debounces; a checkbox does not.
       const debounce = wire.title !== undefined && wire.completed === undefined;
 
       queue(
@@ -438,9 +416,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       const previous = current.tasks[id];
       if (!previous) return;
 
-      // Optimistic untag only. deletePlannedTask clears hourly_logs.task_id inside the same
-      // transaction as the delete, so the client no longer fans this out as N+1 writes that
-      // could half-apply.
       const untagged = retagHours(withTask(current, id, undefined), id, null);
       commit(untagged.data);
 
@@ -449,7 +424,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
       void persist(
         () => deletePlannedTask(id),
         () => {
-          // Restore the task and re-tag exactly the hours that were untagged above.
           const restored = withTask(stateRef.current, id, previous);
           commit(setTaskIdOn(restored, untagged.touched, id));
         },
@@ -459,15 +433,11 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     [commit, persist],
   );
 
-  /* ----------------------------------------------------------- navigation --- */
-
   const goTo = useCallback(
     async (key: string) => {
       if (key === selected) return;
-      // Awaited, not merely dispatched: otherwise the refetch races the write and a stale
-      // window overwrites what was just typed.
       await flushPending();
-      startNav(() => router.push(`/?date=${key}`));
+      startNav(() => router.push(journalHref(key)));
     },
     [selected, flushPending, router],
   );
@@ -480,8 +450,6 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
   const setSelected = useCallback((key: string) => void goTo(key), [goTo]);
 
   const dismissError = useCallback(() => setSyncError(null), []);
-
-  /* ------------------------------------------------------------- derived --- */
 
   const day = useMemo(() => data.days[selected], [data, selected]);
   const dayOrEmpty = useMemo(() => day ?? emptyDay(), [day]);
@@ -514,5 +482,7 @@ export function useJournal(now: Date, { selected, initialData }: UseJournalOptio
     removeTask,
     planTomorrowOpen,
     clearLog,
+    flushPending,
+    persist,
   };
 }

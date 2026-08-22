@@ -13,8 +13,6 @@ type Props = {
 export function HourGrid({ day, currentHour, tasks, onNote, onCategory, onTask }: Props) {
   return (
     <section
-      // min-w-0: a grid item defaults to min-width:auto and would otherwise be sized by the
-      // widest hour row, pushing the whole page into horizontal scroll at tablet widths.
       className="min-w-0 rounded-3xl bg-surface p-4 shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] sm:p-6"
       aria-label="Hourly schedule matrix"
     >

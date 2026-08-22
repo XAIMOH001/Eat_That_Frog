@@ -1,8 +1,9 @@
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { DisciplineGauge } from "./DisciplineGauge";
 import { RoutineToggle } from "./RoutineToggle";
+import { UserMenu } from "./UserMenu";
 import type { RoutineState } from "@/lib/routine-lock";
-import { dateKey, prettyDate } from "@/lib/journal-types";
+import { dateKey, prettyDate, type AccountIdentity } from "@/lib/journal-types";
 
 type Props = {
   selected: string;
@@ -14,6 +15,8 @@ type Props = {
   routine: boolean;
   routineState: RoutineState;
   onRoutineRequest: (value: boolean) => void;
+  onBeforeSignOut: () => Promise<void>;
+  user: AccountIdentity;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,6 +36,8 @@ export function HeaderBar({
   routine,
   routineState,
   onRoutineRequest,
+  onBeforeSignOut,
+  user,
 }: Props) {
   const isToday = selected === dateKey(new Date());
 
@@ -98,9 +103,12 @@ export function HeaderBar({
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-          <DisciplineGauge score={score} frogEaten={frogEaten} />
-          <RoutineToggle checked={routine} state={routineState} onChange={onRoutineRequest} />
+        <div className="flex items-center gap-6 sm:gap-8">
+          <div className="flex flex-1 flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+            <DisciplineGauge score={score} frogEaten={frogEaten} />
+            <RoutineToggle checked={routine} state={routineState} onChange={onRoutineRequest} />
+          </div>
+          <UserMenu user={user} onBeforeSignOut={onBeforeSignOut} />
         </div>
       </div>
     </header>

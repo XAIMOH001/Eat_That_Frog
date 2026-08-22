@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { hashDateKey, quoteCount, quoteForDate } from "./daily-quote";
 
-/** Consecutive YYYY-MM-DD keys, built without touching the ambient clock. */
 function keys(count: number): string[] {
   const out: string[] = [];
   for (let i = 0; i < count; i += 1) {
@@ -45,8 +44,6 @@ describe("quoteForDate", () => {
 
   it("spreads across the catalogue over a 60-day run", () => {
     const seen = new Set(keys(60).map((k) => quoteForDate(k).text));
-    // Not an exact count — the hash is allowed to collide. This only guards against a
-    // degenerate seed that pins every date to one or two quotes.
     expect(seen.size).toBeGreaterThanOrEqual(Math.ceil(quoteCount() / 2));
   });
 

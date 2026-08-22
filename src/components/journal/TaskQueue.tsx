@@ -4,9 +4,7 @@ import { TASK_PRIORITIES, type PlannedTask, type TaskPriority } from "@/lib/jour
 
 type Props = {
   tasks: PlannedTask[];
-  /** The day these tasks belong to; drives the add form's target. */
   targetDate: string;
-  /** True only while viewing today, so "tomorrow" means tomorrow. */
   isToday: boolean;
   tomorrowKey: string;
   planTomorrowOpen: boolean;
@@ -42,7 +40,6 @@ export function TaskQueue({
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("A2");
   const [hours, setHours] = useState("1");
-  // Which day the add form targets. Only reachable when the evening window is open.
   const [forTomorrow, setForTomorrow] = useState(false);
 
   const canPlanTomorrow = isToday && planTomorrowOpen;

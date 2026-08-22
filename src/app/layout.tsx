@@ -7,7 +7,8 @@ const description =
   "A daily execution journal: name your frog, audit every hour, and hold your streak.";
 
 export const metadata: Metadata = {
-  title,
+  metadataBase: new URL(process.env["BETTER_AUTH_URL"] ?? "http://localhost:3000"),
+  title: { default: title, template: "%s · Eat That Frog" },
   description,
   authors: [{ name: "Eat That Frog" }],
   icons: { icon: "/favicon.ico" },

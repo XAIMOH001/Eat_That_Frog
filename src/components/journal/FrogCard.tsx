@@ -2,7 +2,6 @@ import { Check, Target } from "lucide-react";
 import type { PlannedTask } from "@/lib/journal-types";
 
 type Props = {
-  /** The A1 task for the selected day, if one has been named yet. */
   frog: PlannedTask | undefined;
   onText: (value: string) => void;
   onCompleted: (value: boolean) => void;
@@ -12,7 +11,6 @@ export function FrogCard({ frog, onText, onCompleted }: Props) {
   const title = frog?.title ?? "";
   const completed = frog?.completed ?? false;
   const named = title.trim().length > 0;
-  // An unnamed frog can't be eaten, but an eaten one stays undoable even if the text is cleared.
   const locked = !named && !completed;
 
   return (

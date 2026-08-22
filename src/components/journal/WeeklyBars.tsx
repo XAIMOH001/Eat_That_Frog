@@ -69,7 +69,6 @@ export function WeeklyBars({ series }: Props) {
                 style={{ height: PLOT_H }}
                 title={`${fullDate(d.key)} — ${d.productive}h productive, ${d.wasted}h leaked`}
               >
-                {/* 2px surface gap between stacked segments, rounded data-end on top. */}
                 {d.wasted > 0 ? (
                   <div
                     className="w-full rounded-t-sm"

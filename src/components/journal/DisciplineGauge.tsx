@@ -1,11 +1,5 @@
 type Props = { score: number; frogEaten: boolean };
 
-/**
- * The frog is a fact, not something to infer from the total. A day with no frog but a full
- * eight planned hours reaches 60, which the old score-only bands reported as "Frog eaten" —
- * the verdict was stating the opposite of what happened. Taking the flag makes the two
- * ladders independent: 40 of the 100 points are the frog, the other 60 are the hours.
- */
 export function verdict(score: number, frogEaten: boolean) {
   if (!frogEaten) {
     if (score >= 40) return "Strong hours, frog uneaten";

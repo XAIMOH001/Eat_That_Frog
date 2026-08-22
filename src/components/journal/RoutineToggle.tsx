@@ -29,8 +29,6 @@ export function RoutineToggle({ checked, state, onChange }: Props) {
         type="button"
         role="switch"
         aria-checked={checked}
-        // aria-disabled rather than `disabled` keeps the control in the tab order, so the
-        // reason for the lockout is reachable instead of the control silently vanishing.
         aria-disabled={!editable}
         aria-describedby="routine-state"
         aria-label="Core Routine Maintained"
