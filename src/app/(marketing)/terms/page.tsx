@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LegalList, LegalPage, LegalSection, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalList, LegalMail, LegalPage, LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
   title: "Terms",
@@ -62,8 +62,7 @@ export default function TermsPage() {
 
       <LegalSection heading="Contact and governing law">
         <p>
-          Governed by the laws of <LegalTodo>[add a jurisdiction]</LegalTodo>. Questions to{" "}
-          <LegalTodo>[add a contact address]</LegalTodo>.
+          Governed by the laws of Kenya. Questions to <LegalMail />.
         </p>
       </LegalSection>
 

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
+
+import { OG_IMAGE } from "@/lib/og";
 import "./globals.css";
 
 const title = "Eat That Frog — Personal Focus & Time Audit";
@@ -12,8 +14,8 @@ export const metadata: Metadata = {
   description,
   authors: [{ name: "Eat That Frog" }],
   icons: { icon: "/favicon.ico" },
-  openGraph: { title, description, type: "website" },
-  twitter: { card: "summary_large_image", title, description },
+  openGraph: { title, description, type: "website", images: [OG_IMAGE] },
+  twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
 };
 
 export const viewport: Viewport = {

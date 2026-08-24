@@ -48,16 +48,30 @@ generates a competing lockfile.
 
 ```sh
 bun install
-cp .env.example .env.local     # then fill in DATABASE_URL and BETTER_AUTH_SECRET
+cp .env.example .env.local     # then fill in all four variables below
 bun run db:migrate
 bun run dev                    # http://localhost:3000
 ```
 
-`BETTER_AUTH_SECRET` can be generated with `bunx auth@latest secret`. You need a Postgres to
-point `DATABASE_URL` at; anything reachable will do.
+Four variables, all four required — the app throws on startup rather than degrading if one is
+missing:
 
-The app requires an account. `/` redirects to `/sign-in`, the journal itself lives at
-`/journal`, and sign-up is open by default — create one and you land on the dashboard.
+| Variable                | How to get one            | Notes                                    |
+| ----------------------- | ------------------------- | ---------------------------------------- |
+| `DATABASE_URL`          | any reachable Postgres    | Migrations are applied by `db:migrate`   |
+| `BETTER_AUTH_SECRET`    | `bunx auth@latest secret` | Signs session cookies                    |
+| `BETTER_AUTH_URL`       | `http://localhost:3000`   | Also resolves `metadataBase` and sitemap |
+| `COMMITMENT_SECRET_KEY` | `openssl rand -base64 32` | **Not rotatable** — see below            |
+
+`COMMITMENT_SECRET_KEY` is the AES-256-GCM key that seals the private commitment
+(`src/lib/commitment-secret.ts`). It is keyed to the user id as additional authenticated data,
+so a sealed commitment cannot be moved between accounts — and **losing the key makes every
+existing commitment permanently unreadable**. There is no recovery path by design; keep it
+somewhere durable before the first sign-up.
+
+`/` is a public landing page. The journal lives at `/journal` behind an account, sign-up is
+open by default, and a new account passes through `/onboarding/commitment` before landing on
+the dashboard.
 
 | Script                | What it does                         |
 | --------------------- | ------------------------------------ |
@@ -85,6 +99,40 @@ TENANCY_TEST_DATABASE_URL=postgres://…/etf_scratch bun test
 ```
 
 The scoring formula in `journal-metrics.ts` is still uncovered and is the obvious next target.
+
+---
+
+## Deploying
+
+Vercel, with two things it will not do for you.
+
+**Migrations are never run by the build.** Vercel builds run per-branch and concurrently, so a
+`db:migrate` in the build command can race itself. Apply them from your machine, against the
+**direct** connection string rather than the pooled one — DDL through a transaction-mode pooler
+is unreliable:
+
+```sh
+DATABASE_URL='postgres://…direct…' bun run db:migrate
+```
+
+`drizzle.config.ts` loads `.env.local`, and dotenv does not overwrite an already-set variable,
+so the inline prefix above wins.
+
+**The pooled URL is what the app wants.** `src/db/index.ts` opens one connection per instance
+in production (`max: 1`) and disables prepared statements there, because a transaction-mode
+pooler hands a different backend to each statement and a prepared plan does not survive the
+hop. Locally it keeps a real pool of 10. Point `DATABASE_URL` at the pooler for the deployed
+app and at the direct host for migrations.
+
+Set all four variables in the Vercel project, with `BETTER_AUTH_URL` as the real
+`https://` origin — unset, `metadataBase` and the sitemap silently resolve against
+`localhost:3000`. Use a fresh `BETTER_AUTH_SECRET`; do not lift the local one.
+
+`trustedOrigins` is deliberately unset in `src/lib/auth.ts`, so Better Auth trusts only the
+`BETTER_AUTH_URL` origin. That is the tightest CSRF posture and it means **sign-in does not
+work on preview deployments**, whose hostnames are generated per commit. Allowing them is a
+`trustedOrigins: ["https://*.vercel.app"]` entry, and is only worth doing alongside a
+Preview-scoped `DATABASE_URL` so a preview cannot write production rows.
 
 ---
 
